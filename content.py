@@ -3,15 +3,16 @@
 SITE = {
     "name": "Ray Shi",
     "url": "https://ray-shi-dev.github.io",
-    "description": "Ray Shi is a data analyst and sustainability consultant working across building simulation, spatial data and urban design.",
+    "role": "Building Physics Performance Engineer & Data Scientist",
+    "description": "Ray Shi is a building physics performance engineer and data scientist working across energy simulation, spatial data and urban design.",
     "email": "ray.ecodesigner@gmail.com",
     "linkedin": "https://www.linkedin.com/in/ray-shi-b633302a8",
     "github": "https://github.com/Ray-Shi-Dev",
-    "intro": "I'm a data analyst and sustainability consultant trained in architecture and urban design. I model how buildings use energy, how streets hold heat, and how a city's form shapes where people live and work.",
+    "intro": "I'm a building physics engineer and data scientist trained in architecture and urban design. I model how buildings use energy, how streets hold heat, and how a city's form shapes where people live and work.",
     "now": [
-        ("Now", "Graduate Consultant, Arup"),
-        ("Focus", "Building simulation, spatial data, urban design"),
-        ("Based in", "Taipei, Taiwan"),
+        ("Role", "Building physics and data science"),
+        ("Currently", "AI Trainer, Outlier (part-time)"),
+        ("Previously", "Graduate Sustainability Consultant, Arup"),
     ],
 }
 
@@ -23,13 +24,14 @@ GROUPS = [
 PROJECTS = [
     {
         "slug": "arup-energy-climate-modelling",
+        "tags": "EnergyPlus, LightStanza, OpenFOAM",
         "group": "simulation",
         "title": "Energy and climate modelling at Arup",
         "summary": "Energy, daylight, solar and airflow simulations that guide sustainable building design and LEED submissions.",
         "facts": [
             ("Location", "Taipei, Taiwan"),
-            ("Context", "Professional work at Arup"),
-            ("Discipline", "Building performance simulation"),
+            ("Context", "Arup, 2024 to 2026"),
+            ("Standards", "LEED v4, ASHRAE 90.1 and 62.1, EEWH"),
             ("Tools", "Grasshopper, Honeybee, EnergyPlus, LightStanza, OpenFOAM, ParaView"),
         ],
         "cover_alt": "CFD render of airflow around a high-rise tower, with wind speed shown from red to blue",
@@ -40,16 +42,17 @@ PROJECTS = [
             "Facade PV potential and OpenFOAM airflow studies",
         ],
         "body": [
-            ("", "At Arup I run the environmental and energy simulations behind sustainable design decisions and policy-driven assessments: whole-building energy models, annual daylight studies, facade solar radiation for photovoltaics, and computational fluid dynamics."),
-            ("Energy models", "I automated model setup in Grasshopper. The scripts extrude floor plates into thermal zones, intersect them with facade and core masses, solve every surface's boundary condition, and generate windows from a target window-to-wall ratio before writing the model to .hbjson. In EnergyPlus I configure plant loops, HVAC systems, daylight controls and ASHRAE 90.1/62.1 schedules, then compare end-use breakdowns and optimisation strategies against baseline models."),
+            ("", "At Arup I ran the environmental and energy simulations behind sustainable design decisions and policy-driven assessments: whole-building energy models, annual daylight studies, facade solar radiation for photovoltaics, and computational fluid dynamics."),
+            ("Energy models", "I automated model setup in Grasshopper. The scripts extrude floor plates into thermal zones, intersect them with facade and core masses, solve every surface's boundary condition, and generate windows from a target window-to-wall ratio before writing the model to .hbjson. In EnergyPlus I configured plant loops, HVAC systems, daylight controls and ASHRAE 90.1/62.1 schedules, then compared end-use breakdowns and optimisation strategies against baseline models."),
             ("Daylight and solar", "LightStanza runs annual Radiance-based daylight simulations on models brought in from Revit or Rhino. Its outputs, including spatial daylight autonomy, annual sunlight exposure, illuminance grids and glare maps, support LEED v4 daylight credits. Facade radiation maps combined with PV module specifications estimate how much of a building's demand facade-mounted solar can offset."),
-            ("Airflow", "For CFD I use Butterfly and Ladybug in Grasshopper with OpenFOAM: set inlet, outlet and turbulence conditions, refine the mesh around facades and openings, and post-process velocity, pressure and streamlines in ParaView to find comfort zones and judge ventilation."),
+            ("Airflow", "For CFD I used Butterfly and Ladybug in Grasshopper with OpenFOAM: set inlet, outlet and turbulence conditions, refine the mesh around facades and openings, and post-process velocity, pressure and streamlines in ParaView to find comfort zones and judge ventilation."),
         ],
         "code": None,
         "related": ["rhino-wwr-automation"],
     },
     {
         "slug": "remote-sensing-west-coast",
+        "tags": "Google Earth Engine, Sentinel-2, Sentinel-5P",
         "group": "simulation",
         "title": "Remote sensing for environmental monitoring",
         "summary": "Open satellite data and Google Earth Engine used to track air and water quality along an industrial coastline.",
@@ -88,6 +91,7 @@ var turbidity = ndti.updateMask(water);""",
     },
     {
         "slug": "sme-spatial-analysis-taipei",
+        "tags": "Moran's I, regression, bivariate LISA",
         "group": "simulation",
         "title": "Where small businesses cluster in Taipei",
         "summary": "Spatial autocorrelation, regression and bivariate LISA show that banks and commercial land, not transit, decide where SMEs locate.",
@@ -113,31 +117,33 @@ var turbidity = ndti.updateMask(water);""",
     },
     {
         "slug": "urban-oasis-uhi",
+        "tags": "UTCI simulation, Python, Grasshopper",
         "group": "design",
         "title": "Urban Oasis: cooling Manchester's streets",
         "summary": "A dissertation that tests heat-mitigation toolkits on narrow city-centre streets with thermal-comfort simulation, then turns the results into a masterplan and design guide.",
         "facts": [
             ("Location", "Manchester city centre, UK"),
             ("Area", "10 ha"),
-            ("Context", "MSc dissertation, The University of Manchester"),
-            ("Methods", "UTCI thermal comfort simulation, scenario testing"),
+            ("Context", "MSc dissertation, The University of Manchester, 2023"),
+            ("Methods", "Automated UTCI simulation in Python, Rhino and Grasshopper"),
         ],
         "cover_alt": "Axonometric of Manchester city-centre streets with surface temperature shown from blue to red",
         "highlights": [
-            "UTCI simulation to locate heat hotspots",
+            "An automated UTCI simulation workflow in Python, Rhino and Grasshopper",
             "Modular sidewalk prototypes combining shade, greenery and water",
             "A prioritisation model for where shade goes first",
         ],
         "body": [
             ("", "Replacing vegetation with hard surfaces makes cities several degrees warmer than the countryside around them. Manchester, shaped by industry and short on green space, feels this sharply in summer. This dissertation builds a repeatable workflow for retrofitting narrow streets to keep people comfortable."),
-            ("Analysis", "Universal Thermal Climate Index simulations identified hotspots across the city centre. Studies of urban fabric and traffic around the Arndale Centre, Market Street and Shudehill set the context, and eight design principles followed: bioclimatic design, urban geometry, thermal comfort, walkability, sustainability, cultural context, activity and safety."),
-            ("Testing", "Combinations of shading, green infrastructure and blue infrastructure were simulated as modular sidewalk prototypes, then tested in three implementation scenarios based on current street policy. The best fit for each street became the final masterplan and a design guide for Manchester's varied streets."),
+            ("Analysis", "I built an automated Universal Thermal Climate Index (UTCI) simulation workflow in Python, Rhino and Grasshopper and used it to find hotspots across the city centre. Studies of urban fabric and traffic around the Arndale Centre, Market Street and Shudehill set the context, and eight design principles followed: bioclimatic design, urban geometry, thermal comfort, walkability, sustainability, cultural context, activity and safety."),
+            ("Testing", "Combinations of shading, green infrastructure and blue infrastructure were simulated as modular sidewalk prototypes, then tested in three implementation scenarios based on current street policy. The best fit for each street became the final masterplan, a decision-making toolkit and a design guide for Manchester's varied streets."),
         ],
         "code": None,
         "related": [],
     },
     {
         "slug": "upper-brook-street",
+        "tags": "Masterplanning, public realm",
         "group": "design",
         "title": "A new quarter for Upper Brook Street",
         "summary": "A 3.2-hectare masterplan that replaces vacant buildings with a walkable mixed-use neighbourhood between Manchester's campuses and city centre.",
@@ -163,6 +169,7 @@ var turbidity = ndti.updateMask(water);""",
     },
     {
         "slug": "clayton-esplanade",
+        "tags": "Masterplanning, CPTED, SuDS",
         "group": "design",
         "title": "Clayton Esplanade masterplan",
         "summary": "A canalfront mixed-use neighbourhood that brings health, work and recreation to an east Manchester suburb facing deprivation.",
@@ -187,6 +194,7 @@ var turbidity = ndti.updateMask(water);""",
     },
     {
         "slug": "daxi-cultural-quarters",
+        "tags": "Heritage, architectural design",
         "group": "design",
         "title": "Daxi Cultural Quarters",
         "summary": "A block design for a historic Japanese-era town that gives young residents places to live and work without erasing the street's character.",
@@ -245,25 +253,71 @@ VENTURES = []
 ABOUT = {
     "bio": [
         "I started in architecture, moved into urban planning and urban design, and now spend most of my time in simulation engines and code. The thread is the same throughout: measure how places perform, then design them to perform better for the people in them.",
-        "At Arup I build energy, daylight and airflow models for sustainable building projects. I also train AI models with Outlier, and I write Python tools that move methods between fields, from building-energy machine learning to finance.",
-        "Outside work I read about neuroscience, psychology and financial engineering, and I played football for my university team.",
-    ],
-    "education": [
-        ("MSc Urban Design and International Planning", "The University of Manchester, UK"),
-        ("MSc Urban Planning", "National Cheng Kung University, Taiwan"),
-        ("Bachelor of Architecture", "National University of Kaohsiung, Taiwan"),
-        ("Transnational Urban Design Workshop", "MA Urban Future, FH Potsdam, Germany"),
-    ],
-    "experience": [
-        ("Graduate Consultant", "Arup, Taipei"),
-        ("AI Trainer", "Outlier"),
-    ],
-    "recognition": [
-        ("Global Future Scholarship", "The University of Manchester, 2022"),
-        ("Third Prize", "20th National Land Planning Forum, Taiwan"),
-        ("Newcomer Award", "Architecture and Interior Design Students, 2018"),
-        ("Licentiate member", "Royal Town Planning Institute"),
-        ("Certificate", "IPMA Project Management"),
-        ("Sustainability courses", "University of Edinburgh and RTPI"),
+        "From 2024 to 2026 I was a Graduate Sustainability Consultant at Arup in Taipei, building energy, daylight and airflow models for LEED, ASHRAE and EEWH projects. I also train large language models part-time for Outlier, and I write Python tools that carry methods between fields, from building-energy machine learning to finance.",
+        "Away from the screen I read about neuroscience, psychology and financial engineering. I played left wing for my university football team.",
     ],
 }
+
+EXPERIENCE = [
+    {
+        "years": "2024 – 2026",
+        "role": "Graduate Sustainability Consultant",
+        "org": "Arup, Taipei",
+        "text": "Building energy performance modelling and data analysis with Rhino, Grasshopper, EnergyPlus, Ladybug, Honeybee, OpenStudio and Python. Delivered LEED, ASHRAE 90.1/62.1 and EEWH work across energy, water and indoor air quality, and wrote project-specific sustainability guidelines with multidisciplinary teams.",
+    },
+    {
+        "years": "2024 – now",
+        "role": "AI Trainer",
+        "org": "Outlier, remote, part-time",
+        "text": "Train and refine multilingual large language models: build training data, evaluate model performance and work with AI engineers and researchers on new training methods.",
+    },
+    {
+        "years": "2021 – 2022",
+        "role": "Research Assistant",
+        "org": "National Cheng Kung University, Tainan",
+        "text": "Science park site-selection research for Kaohsiung City Council, covering industry life cycles, supply chains, energy, markets and infrastructure, with GIS and statistical analysis of demographics, business models and traffic networks.",
+    },
+]
+
+EDUCATION = [
+    {
+        "years": "2022 – 2023",
+        "role": "MSc Urban Design and International Planning, Merit",
+        "org": "The University of Manchester, UK",
+        "text": "Global Future Scholarship. Distinction marks on two projects. Dissertation on mitigating urban heat islands through street retrofitting, with an automated UTCI simulation workflow and a decision-making toolkit.",
+    },
+    {
+        "years": "2020 – 2023",
+        "role": "MSc Urban Planning, Econometrics Lab",
+        "org": "National Cheng Kung University, Taiwan",
+        "text": "GPA 4.01. Thesis on senior housing decisions using logistic regression, supervised by Prof. Y. J. Chen. Third place, Student Research Award, 26th Forum on Land Use and Planning (2022).",
+    },
+    {
+        "years": "2016 – 2020",
+        "role": "Bachelor of Architecture",
+        "org": "National University of Kaohsiung, Taiwan",
+        "text": "GPA 3.5. Newcomer Award for Architecture and Interior Design Students, Architectural Institute of Kaohsiung (2018). Excellent Creativity Award, university hackathon (2017). Transnational Urban Design Workshop with FH Potsdam (2019).",
+    },
+]
+
+TOOLKIT = [
+    ("Simulation and modelling", "EnergyPlus, OpenStudio, IES VE, Honeybee, Ladybug, Butterfly, OpenFOAM, LightStanza, Rhino, Grasshopper, Elefront, Revit, AutoCAD, SketchUp"),
+    ("Data science", "Python, R, SQL, SPSS, Excel, Git, Docker"),
+    ("Geospatial", "ArcGIS Pro, ArcGIS Online, QGIS, Google Earth Engine"),
+    ("Standards", "LEED v4, ASHRAE 90.1 and 62.1, EEWH"),
+    ("Visual communication", "InDesign, Illustrator, Photoshop"),
+]
+
+CREDENTIALS = [
+    ("Docker Foundations Professional Certificate", "Docker, via Coursera, 2026"),
+    ("Emergency Medical Technician, Level 1", "Taiwan National Fire Agency, 2023"),
+    ("Licentiate member", "Royal Town Planning Institute, elected 2022"),
+    ("RTPI courses", "Town Planning and the UN SDGs; Planning to Protect Ancient Woodlands and Trees"),
+    ("IPMA Level D Certificate", "International Project Management Association, 2021"),
+]
+
+SERVICE = [
+    ("Student Ambassador", "The University of Manchester International Recruitment, 2022 – 2023"),
+    ("Elderly care volunteer", "Kaohsiung Veterans Home and Chong Shang Day Care Center, 2018 – 2019"),
+    ("Event volunteer", "25th Forum on Land Use and Planning; Tainan Sustainable Real Estate and Green Energy Forum, 2021"),
+]
