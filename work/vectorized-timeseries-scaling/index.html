@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scaling an energy anomaly-detection pipeline | Ray Shi</title>
+<meta name="description" content="Rewrote the data preparation of a prize-winning time-series pipeline with vectorised group transforms: 72% faster, 1.4 GB less peak memory, and a fitting bug fixed along the way.">
+<meta name="author" content="Ray Shi">
+<link rel="canonical" href="https://ray-shi-dev.github.io/work/vectorized-timeseries-scaling/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ray Shi">
+<meta property="og:title" content="Scaling an energy anomaly-detection pipeline | Ray Shi">
+<meta property="og:description" content="Rewrote the data preparation of a prize-winning time-series pipeline with vectorised group transforms: 72% faster, 1.4 GB less peak memory, and a fitting bug fixed along the way.">
+<meta property="og:url" content="https://ray-shi-dev.github.io/work/vectorized-timeseries-scaling/">
+<meta property="og:image" content="https://ray-shi-dev.github.io/assets/og/vectorized-timeseries-scaling.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#EDF0EE">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css?v=4">
+<script>document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)</script>
+</head>
+<body class="project">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <a class="nav-name" href="/" aria-label="Ray Shi, home">Ray Shi</a>
+  <nav aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a></nav>
+</header>
+<main id="main">
+<article>
+  <header class="p-head">
+    <p class="crumb"><a href="/#work">Selected work</a> <span aria-hidden="true">/</span> Software and machine learning</p>
+    <h1 class="p-title">Scaling an energy anomaly-detection pipeline</h1>
+    <p class="p-sum">Rewrote the data preparation of a prize-winning time-series pipeline with vectorised group transforms: 72% faster, 1.4 GB less peak memory, and a fitting bug fixed along the way.</p>
+    <dl class="facts"><div><dt>Type</dt><dd>Performance engineering, machine learning</dd></div><div><dt>Stack</dt><dd>Python, pandas, NumPy, SciPy, LightGBM, XGBoost, CatBoost</dd></div><div><dt>Data</dt><dd>LEAD building-energy time series</dd></div><div><dt>Code</dt><dd><a href="https://github.com/Ray-Shi-Dev/vectorized-timeseries-scaling">vectorized-timeseries-scaling</a></dd></div></dl>
+    <p class="p-actions"><a class="btn" href="https://github.com/Ray-Shi-Dev/vectorized-timeseries-scaling">View the code on GitHub</a></p>
+  </header>
+  <figure class="p-cover"><img src="/assets/img/vectorized-timeseries-scaling/cover-sm.webp" srcset="/assets/img/vectorized-timeseries-scaling/cover-sm.webp 960w, /assets/img/vectorized-timeseries-scaling/cover.webp 2000w" sizes="(max-width: 1440px) 100vw, 1440px" width="2000" height="1250" alt="Bar chart comparing run time of the iterative pipeline, 26.6 minutes, with the vectorised pipeline, 7.3 minutes" fetchpriority="high" decoding="async"></figure>
+  <div class="p-body">
+    <aside class="p-high"><h2>Highlights</h2><ul><li>Loops of slice-transform-concat replaced with groupby().transform()</li><li>Benchmarked end to end with an automated time and memory tracker</li><li>Found and fixed a subset-fitting bug in the iterative version</li></ul></aside>
+    <div class="prose"><p>The pipeline is the winning solution to the Large-scale Energy Anomaly Detection (LEAD) competition by Chun Fu, Pandarasamy Arjunan and Clayton Miller (BuildSys &#x27;22). It works well on benchmark data with a few hundred meters, but a practical case needed 2,000 streams, about ten times more, and the data preparation became the bottleneck.</p><h3>Approach</h3><p>The original code isolates each meter, slices a sub-DataFrame, applies mean imputation and Savitzky-Golay smoothing, appends the result and concatenates everything at the end. I replaced that with vectorised groupby().transform() calls, so the maths runs across all groups at once on pandas&#x27; compiled backend over contiguous arrays, following the design argument in Wes McKinney&#x27;s original pandas paper. The output feeds the same LightGBM, XGBoost and CatBoost ensemble.</p><h3>Results</h3><p>On a standard Kaggle Linux container the vectorised version ran in 7.3 minutes instead of 26.6 and peaked 1.4 GB lower, because it stops creating and destroying temporary DataFrames. The goal was strict parity in accuracy. While checking parity I found that the iterative version was fitting on subsets of the data; with that fixed, the private leaderboard score rose from 0.933 to 0.952.</p><figure class="results"><figcaption>Benchmark results</figcaption><table><thead><tr><th scope="col">Metric</th><th scope="col">Iterative</th><th scope="col">Vectorised</th><th scope="col">Change</th></tr></thead><tbody><tr><th scope="row">Wall-clock time</th><td>26.6 min</td><td>7.3 min</td><td>72% faster</td></tr><tr><th scope="row">Peak memory</th><td>21.7 GB</td><td>20.3 GB</td><td>1.4 GB less</td></tr><tr><th scope="row">Kaggle private score</th><td>0.933</td><td>0.952</td><td>+0.019</td></tr><tr><th scope="row">Kaggle public score</th><td>0.893</td><td>0.914</td><td>+0.022</td></tr></tbody></table></figure></div>
+  </div>
+  <section class="p-sheets p-sheets--shots" aria-labelledby="sheets-title">
+    <div class="p-sheets-head"><h2 id="sheets-title">Screenshots</h2><p>Select an image to view it full size.</p></div>
+    <ul class="sheets"><li><figure><button class="sheet" type="button" data-full="/assets/img/vectorized-timeseries-scaling/leaderboard.webp" aria-label="Open image 1 of 1 full size"><img src="/assets/img/vectorized-timeseries-scaling/leaderboard-sm.webp" alt="Kaggle submissions: vectorised pipeline (top) and the original reproduction (bottom)" loading="lazy" decoding="async" width="900" height="229"></button><figcaption>Kaggle submissions: vectorised pipeline (top) and the original reproduction (bottom)</figcaption></figure></li></ul>
+  </section>
+  <nav class="p-next" aria-label="More projects">
+    <a class="prev" href="/work/daxi-cultural-quarters/"><span>Previous project</span><strong>Daxi Cultural Quarters</strong></a>
+    <a class="next" href="/work/ml-stat-arb/"><span>Next project</span><strong>Machine-learning pairs trading for PropTech</strong></a>
+  </nav>
+</article>
+</main>
+<dialog class="viewer" aria-label="Image viewer">
+  <img alt="">
+  <div class="viewer-bar">
+    <button type="button" data-act="prev">Previous</button>
+    <span class="viewer-count" aria-live="polite"></span>
+    <button type="button" data-act="next">Next</button>
+    <button type="button" data-act="close">Close</button>
+  </div>
+</dialog>
+<footer class="foot" id="contact">
+  <div class="foot-inner">
+    <h2 class="foot-title">Let's talk</h2>
+    <p class="foot-lede">Open to conversations about data science, machine learning and software engineering.</p>
+    <ul class="foot-links">
+      <li><a href="mailto:ray.ecodesigner@gmail.com">ray.ecodesigner@gmail.com</a></li>
+      <li><a href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn</a></li>
+      <li><a href="https://github.com/Ray-Shi-Dev" rel="me">GitHub</a></li>
+      <li><a href="/cv/">CV</a></li>
+    </ul>
+    <p class="foot-small"><span>© 2026 Ray Shi</span><span>Taiwan</span></p>
+  </div>
+</footer>
+<script src="/assets/site.js?v=4" defer></script>
+<script src="/assets/viewer.js?v=4" defer></script>
+</body></html>

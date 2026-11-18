@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Machine-learning pairs trading for PropTech | Ray Shi</title>
+<meta name="description" content="Tests whether gradient-boosting pipelines built for building-energy time series can detect cointegration breakdowns between real-estate stocks and turn them into trading signals.">
+<meta name="author" content="Ray Shi">
+<link rel="canonical" href="https://ray-shi-dev.github.io/work/ml-stat-arb/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ray Shi">
+<meta property="og:title" content="Machine-learning pairs trading for PropTech | Ray Shi">
+<meta property="og:description" content="Tests whether gradient-boosting pipelines built for building-energy time series can detect cointegration breakdowns between real-estate stocks and turn them into trading signals.">
+<meta property="og:url" content="https://ray-shi-dev.github.io/work/ml-stat-arb/">
+<meta property="og:image" content="https://ray-shi-dev.github.io/assets/og/ml-stat-arb.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#EDF0EE">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css?v=4">
+<script>document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)</script>
+</head>
+<body class="project">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <a class="nav-name" href="/" aria-label="Ray Shi, home">Ray Shi</a>
+  <nav aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a></nav>
+</header>
+<main id="main">
+<article>
+  <header class="p-head">
+    <p class="crumb"><a href="/#work">Selected work</a> <span aria-hidden="true">/</span> Software and machine learning</p>
+    <h1 class="p-title">Machine-learning pairs trading for PropTech</h1>
+    <p class="p-sum">Tests whether gradient-boosting pipelines built for building-energy time series can detect cointegration breakdowns between real-estate stocks and turn them into trading signals.</p>
+    <dl class="facts"><div><dt>Type</dt><dd>Machine learning, quantitative finance</dd></div><div><dt>Stack</dt><dd>Python, pandas, statsmodels, scikit-learn, LightGBM, XGBoost, CatBoost</dd></div><div><dt>Data</dt><dd>Daily prices via yfinance, e.g. PLD and AMT</dd></div><div><dt>Code</dt><dd><a href="https://github.com/Ray-Shi-Dev/ml-stat-arb">ml-stat-arb</a></dd></div></dl>
+    <p class="p-actions"><a class="btn" href="https://github.com/Ray-Shi-Dev/ml-stat-arb">View the code on GitHub</a></p>
+  </header>
+  <figure class="p-cover"><img src="/assets/img/ml-stat-arb/cover-sm.webp" srcset="/assets/img/ml-stat-arb/cover-sm.webp 960w, /assets/img/ml-stat-arb/cover.webp 2000w" sizes="(max-width: 1440px) 100vw, 1440px" width="2000" height="1250" alt="Diagram of the pipeline: price data, lag and rolling features with Savitzky-Golay smoothing, a gradient-boosting ensemble, and trading rules at two and three standard deviations" fetchpriority="high" decoding="async"></figure>
+  <div class="p-body">
+    <aside class="p-high"><h2>Highlights</h2><ul><li>Pairs trading framed as anomaly detection on the spread</li><li>Lag, rolling-window and Savitzky-Golay features</li><li>Modular pipeline: loader, features, clustering, ensemble, backtest</li></ul></aside>
+    <div class="prose"><p>This started while I was reproducing Prof. Chun Fu&#x27;s workflows for the ASHRAE Great Energy Predictor III and LEAD competitions. Gradient-boosting machines with careful time-series features win those problems, and pairs trading is a kind of anomaly detection: you look for moments when the spread between two related assets breaks from its history. So I tested whether the same pipeline transfers to financial time series, using PropTech and REIT pairs such as Prologis (PLD) and American Tower (AMT).</p><h3>Method</h3><p>Prices are cleaned and turned into a feature matrix of time-lag features, ratios and differences, and rolling-window statistics. A Savitzky-Golay filter smooths microstructure noise while keeping the height of real peaks in the spread, which a moving average would flatten and delay. An ensemble of LightGBM and XGBoost models predicts the spread, and the trading logic enters when it moves beyond two standard deviations and stops out beyond three.</p><h3>Engineering</h3><p>The code is split into a data loader, feature builder, clustering step, model ensemble and backtester, configured from one YAML file. A notebook walks through the exploratory analysis, the smoothing and the model training.</p></div>
+  </div>
+  
+  <nav class="p-next" aria-label="More projects">
+    <a class="prev" href="/work/vectorized-timeseries-scaling/"><span>Previous project</span><strong>Scaling an energy anomaly-detection pipeline</strong></a>
+    <a class="next" href="/work/rhino-wwr-automation/"><span>Next project</span><strong>Window-to-wall ratio extractor for Rhino</strong></a>
+  </nav>
+</article>
+</main>
+<dialog class="viewer" aria-label="Image viewer">
+  <img alt="">
+  <div class="viewer-bar">
+    <button type="button" data-act="prev">Previous</button>
+    <span class="viewer-count" aria-live="polite"></span>
+    <button type="button" data-act="next">Next</button>
+    <button type="button" data-act="close">Close</button>
+  </div>
+</dialog>
+<footer class="foot" id="contact">
+  <div class="foot-inner">
+    <h2 class="foot-title">Let's talk</h2>
+    <p class="foot-lede">Open to conversations about data science, machine learning and software engineering.</p>
+    <ul class="foot-links">
+      <li><a href="mailto:ray.ecodesigner@gmail.com">ray.ecodesigner@gmail.com</a></li>
+      <li><a href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn</a></li>
+      <li><a href="https://github.com/Ray-Shi-Dev" rel="me">GitHub</a></li>
+      <li><a href="/cv/">CV</a></li>
+    </ul>
+    <p class="foot-small"><span>© 2026 Ray Shi</span><span>Taiwan</span></p>
+  </div>
+</footer>
+<script src="/assets/site.js?v=4" defer></script>
+<script src="/assets/viewer.js?v=4" defer></script>
+</body></html>

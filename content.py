@@ -3,25 +3,153 @@
 SITE = {
     "name": "Ray Shi",
     "url": "https://ray-shi-dev.github.io",
-    "role": "Building Physics Performance Engineer & Data Scientist",
-    "description": "Ray Shi is a building physics performance engineer and data scientist working across energy simulation, spatial data and urban design.",
+    "role": "Data Scientist & Computational Engineer",
+    "description": "Ray Shi is a data scientist and computational engineer: Python pipelines, machine learning, simulation and spatial data. Research assistant in Computer Science at National Cheng Kung University.",
     "email": "ray.ecodesigner@gmail.com",
     "linkedin": "https://www.linkedin.com/in/ray-shi-b633302a8",
     "github": "https://github.com/Ray-Shi-Dev",
-    "intro": "I'm a building physics engineer and data scientist trained in architecture and urban design. I model how buildings use energy, how streets hold heat, and how a city's form shapes where people live and work.",
+    "intro": "I'm a data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools, grounded in two years of building-physics work at Arup and a research background in spatial statistics.",
     "now": [
-        ("Role", "Building physics and data science"),
-        ("Currently", "AI Trainer, Outlier (part-time)"),
-        ("Previously", "Graduate Sustainability Consultant, Arup"),
+        ("Now", "Research Assistant, Computer Science, NCKU NetDB Lab"),
+        ("Previously", "Computational Energy Specialist, Arup"),
+        ("Stack", "Python, SQL, pandas, scikit-learn, Git, Docker"),
     ],
 }
 
 GROUPS = [
-    ("simulation", "Simulation and data", "Models and code that measure energy, air, water and economic activity."),
-    ("design", "Urban design", "Masterplans and buildings, from a 430 m² block to a 22-hectare neighbourhood."),
+    ("software", "Software and machine learning", "Open-source projects on GitHub: data pipelines, model ensembles, geometry automation and a data product."),
+    ("simulation", "Simulation and spatial data", "Energy, climate, satellite and spatial-statistics models built for professional projects and research."),
+    ("design", "Earlier work: urban design", "Masterplans and buildings from my architecture and urban design training."),
 ]
 
 PROJECTS = [
+    {
+        "slug": "vectorized-timeseries-scaling",
+        "kind": "software",
+        "tags": "pandas, NumPy, LightGBM, XGBoost, CatBoost",
+        "group": "software",
+        "repo": "vectorized-timeseries-scaling",
+        "title": "Scaling an energy anomaly-detection pipeline",
+        "summary": "Rewrote the data preparation of a prize-winning time-series pipeline with vectorised group transforms: 72% faster, 1.4 GB less peak memory, and a fitting bug fixed along the way.",
+        "facts": [
+            ("Type", "Performance engineering, machine learning"),
+            ("Stack", "Python, pandas, NumPy, SciPy, LightGBM, XGBoost, CatBoost"),
+            ("Data", "LEAD building-energy time series"),
+            ("Code", "github.com/Ray-Shi-Dev/vectorized-timeseries-scaling"),
+        ],
+        "cover_alt": "Bar chart comparing run time of the iterative pipeline, 26.6 minutes, with the vectorised pipeline, 7.3 minutes",
+        "results": [
+            ("Wall-clock time", "26.6 min", "7.3 min", "72% faster"),
+            ("Peak memory", "21.7 GB", "20.3 GB", "1.4 GB less"),
+            ("Kaggle private score", "0.933", "0.952", "+0.019"),
+            ("Kaggle public score", "0.893", "0.914", "+0.022"),
+        ],
+        "results_head": ("Metric", "Iterative", "Vectorised", "Change"),
+        "highlights": [
+            "Loops of slice-transform-concat replaced with groupby().transform()",
+            "Benchmarked end to end with an automated time and memory tracker",
+            "Found and fixed a subset-fitting bug in the iterative version",
+        ],
+        "body": [
+            ("", "The pipeline is the winning solution to the Large-scale Energy Anomaly Detection (LEAD) competition by Chun Fu, Pandarasamy Arjunan and Clayton Miller (BuildSys '22). It works well on benchmark data with a few hundred meters, but a practical case needed 2,000 streams, about ten times more, and the data preparation became the bottleneck."),
+            ("Approach", "The original code isolates each meter, slices a sub-DataFrame, applies mean imputation and Savitzky-Golay smoothing, appends the result and concatenates everything at the end. I replaced that with vectorised groupby().transform() calls, so the maths runs across all groups at once on pandas' compiled backend over contiguous arrays, following the design argument in Wes McKinney's original pandas paper. The output feeds the same LightGBM, XGBoost and CatBoost ensemble."),
+            ("Results", "On a standard Kaggle Linux container the vectorised version ran in 7.3 minutes instead of 26.6 and peaked 1.4 GB lower, because it stops creating and destroying temporary DataFrames. The goal was strict parity in accuracy. While checking parity I found that the iterative version was fitting on subsets of the data; with that fixed, the private leaderboard score rose from 0.933 to 0.952."),
+        ],
+        "gallery": [("vectorized-timeseries-scaling/leaderboard.webp", "Kaggle submissions: vectorised pipeline (top) and the original reproduction (bottom)")],
+        "code": None,
+        "related": [],
+    },
+    {
+        "slug": "ml-stat-arb",
+        "kind": "software",
+        "tags": "scikit-learn, LightGBM, statsmodels, yfinance",
+        "group": "software",
+        "repo": "ml-stat-arb",
+        "title": "Machine-learning pairs trading for PropTech",
+        "summary": "Tests whether gradient-boosting pipelines built for building-energy time series can detect cointegration breakdowns between real-estate stocks and turn them into trading signals.",
+        "facts": [
+            ("Type", "Machine learning, quantitative finance"),
+            ("Stack", "Python, pandas, statsmodels, scikit-learn, LightGBM, XGBoost, CatBoost"),
+            ("Data", "Daily prices via yfinance, e.g. PLD and AMT"),
+            ("Code", "github.com/Ray-Shi-Dev/ml-stat-arb"),
+        ],
+        "cover_alt": "Diagram of the pipeline: price data, lag and rolling features with Savitzky-Golay smoothing, a gradient-boosting ensemble, and trading rules at two and three standard deviations",
+        "highlights": [
+            "Pairs trading framed as anomaly detection on the spread",
+            "Lag, rolling-window and Savitzky-Golay features",
+            "Modular pipeline: loader, features, clustering, ensemble, backtest",
+        ],
+        "body": [
+            ("", "This started while I was reproducing Prof. Chun Fu's workflows for the ASHRAE Great Energy Predictor III and LEAD competitions. Gradient-boosting machines with careful time-series features win those problems, and pairs trading is a kind of anomaly detection: you look for moments when the spread between two related assets breaks from its history. So I tested whether the same pipeline transfers to financial time series, using PropTech and REIT pairs such as Prologis (PLD) and American Tower (AMT)."),
+            ("Method", "Prices are cleaned and turned into a feature matrix of time-lag features, ratios and differences, and rolling-window statistics. A Savitzky-Golay filter smooths microstructure noise while keeping the height of real peaks in the spread, which a moving average would flatten and delay. An ensemble of LightGBM and XGBoost models predicts the spread, and the trading logic enters when it moves beyond two standard deviations and stops out beyond three."),
+            ("Engineering", "The code is split into a data loader, feature builder, clustering step, model ensemble and backtester, configured from one YAML file. A notebook walks through the exploratory analysis, the smoothing and the model training."),
+        ],
+        "gallery": [],
+        "code": None,
+        "related": [],
+    },
+    {
+        "slug": "rhino-wwr-automation",
+        "kind": "software",
+        "tags": "Python, Rhino.Geometry, computational geometry",
+        "group": "software",
+        "repo": "rhino-wwr-automation",
+        "title": "Window-to-wall ratio extractor for Rhino",
+        "summary": "A fault-tolerant geometry parser that reads per-floor window-to-wall ratios straight from 3D thermal massing models and exports simulation-ready CSV.",
+        "facts": [
+            ("Type", "Computational geometry, automation"),
+            ("Stack", "Python, RhinoScriptSyntax, Rhino.Geometry"),
+            ("Used for", "Energy models, LEED and EEWH submissions"),
+            ("Code", "github.com/Ray-Shi-Dev/rhino-wwr-automation"),
+        ],
+        "cover_alt": "Rhino model of a high-rise tower with thermal zones and glazing coloured by layer",
+        "highlights": [
+            "Treats the model as a data structure, not a drawing",
+            "Survives slab holes, micro-gaps and multi-storey zones",
+            "Distributes multi-floor glazing by vertical overlap",
+        ],
+        "body": [
+            ("", "Window-to-wall ratio is a basic input to every energy model and green-building submission, and measuring it by hand is slow. Architectural models are built to look right, not to be measured: slabs have holes for cores and shafts, thermal zones leave 1 to 10 mm gaps that break Boolean unions, and atriums or curtain walls span several floors."),
+            ("How it works", "The script scans layers automatically, separating thermal zones, underground zones and glazing. It sorts zones by elevation with a 1.5 m tolerance and ignores artefacts under 2 m to find the true floors. For each floor it slices the massing at 1.2 m above the slab, unions the section curves with a 0.1 m tolerance and keeps the largest outer ring as the facade perimeter. Glazing that spans floors is split by how much of its bounding box overlaps each storey. Redraw is switched off while it runs, and the result is saved as a per-floor CSV."),
+        ],
+        "gallery": [("rhino-wwr-automation/csv-output.webp", "Per-floor CSV output: elevation, height, perimeter, wall area, glazing area and WWR")],
+        "code": None,
+        "related": [],
+    },
+    {
+        "slug": "youtube-market-engine",
+        "kind": "software",
+        "tags": "Streamlit, Plotly, YouTube Data API, concurrency",
+        "group": "software",
+        "repo": "youtube-market-engine",
+        "title": "YouTube market intelligence engine",
+        "summary": "A Streamlit data product that pulls YouTube data in parallel, isolates videos that beat their own channel's baseline and scores how open a niche is from 0 to 100.",
+        "facts": [
+            ("Type", "Data product, analytics"),
+            ("Stack", "Python, Streamlit, pandas, Plotly, YouTube Data API v3"),
+            ("Concurrency", "ThreadPoolExecutor for parallel API calls"),
+            ("Code", "github.com/Ray-Shi-Dev/youtube-market-engine"),
+        ],
+        "cover_alt": "Diagram of the viral multiplier, a video's views divided by its channel's median views, and the three parts of the niche score",
+        "highlights": [
+            "Parallel API ingestion across channels",
+            "Viral multiplier: views over the channel's median",
+            "Niche score with a penalty for markets dominated by large channels",
+        ],
+        "body": [
+            ("", "Creators usually pick topics by instinct, which fails in crowded markets. This tool measures the barrier to entry for a topic with live data, so a high-demand, low-competition niche stands out and a market held by a few giant channels is flagged."),
+            ("How it works", "For a topic and region it finds the top channels, then fetches their upload playlists and statistics in parallel with a thread pool to cut ingestion time. Each video gets a viral multiplier, its views divided by the median views of its own channel, so demand is measured independently of subscriber count. The niche score rewards market depth (how many outliers exist) and viral intensity (how strong they are), and applies a penalty when channels with more than a million subscribers hold over half the market."),
+            ("Interface", "The Streamlit app has a single-topic dashboard with a score gauge, an opportunity map of upload date against viral multiplier, a tag explorer for long-tail keywords, and a head-to-head comparison of two topics."),
+        ],
+        "gallery": [
+            ("youtube-market-engine/dashboard.webp", "Market health check with the 0 to 100 opportunity score"),
+            ("youtube-market-engine/opportunity-map.webp", "Opportunity map and ranked videos"),
+            ("youtube-market-engine/tags.webp", "Opportunity categories and hidden keyword frequency"),
+            ("youtube-market-engine/battle.webp", "Head-to-head comparison of two topics"),
+        ],
+        "code": None,
+        "related": [],
+    },
     {
         "slug": "arup-energy-climate-modelling",
         "tags": "EnergyPlus, LightStanza, OpenFOAM",
@@ -30,7 +158,7 @@ PROJECTS = [
         "summary": "Energy, daylight, solar and airflow simulations that guide sustainable building design and LEED submissions.",
         "facts": [
             ("Location", "Taipei, Taiwan"),
-            ("Context", "Arup, 2024 to 2026"),
+            ("Context", "Arup, Computational Energy Specialist, 2024 to 2026"),
             ("Standards", "LEED v4, ASHRAE 90.1 and 62.1, EEWH"),
             ("Tools", "Grasshopper, Honeybee, EnergyPlus, LightStanza, OpenFOAM, ParaView"),
         ],
@@ -118,7 +246,7 @@ var turbidity = ndti.updateMask(water);""",
     {
         "slug": "urban-oasis-uhi",
         "tags": "UTCI simulation, Python, Grasshopper",
-        "group": "design",
+        "group": "simulation",
         "title": "Urban Oasis: cooling Manchester's streets",
         "summary": "A dissertation that tests heat-mitigation toolkits on narrow city-centre streets with thermal-comfort simulation, then turns the results into a masterplan and design guide.",
         "facts": [
@@ -252,30 +380,36 @@ VENTURES = []
 
 ABOUT = {
     "bio": [
-        "I started in architecture, moved into urban planning and urban design, and now spend most of my time in simulation engines and code. The thread is the same throughout: measure how places perform, then design them to perform better for the people in them.",
-        "From 2024 to 2026 I was a Graduate Sustainability Consultant at Arup in Taipei, building energy, daylight and airflow models for LEED, ASHRAE and EEWH projects. I also train large language models part-time for Outlier, and I write Python tools that carry methods between fields, from building-energy machine learning to finance.",
-        "Away from the screen I read about neuroscience, psychology and financial engineering. I played left wing for my university football team.",
+        "I came to computing through the built environment. Architecture taught me to design, urban planning taught me econometrics and spatial statistics, and two years at Arup turned simulation into code: I automated energy models, wrote geometry parsers and built analysis pipelines in Python.",
+        "Now I'm moving into computer science full time. As a research assistant at NCKU's NetDB Lab I'm working through data structures and computer architecture and preparing the stack for data-mining and distributed-ledger projects. On the side I build open-source tools that carry methods between fields, from building-energy machine learning to finance.",
+        "Before that I trained large language models with RLHF at Outlier. Away from the screen I read about neuroscience, psychology and financial engineering, and I played left wing for my university football team.",
     ],
 }
 
 EXPERIENCE = [
     {
-        "years": "2024 – 2026",
-        "role": "Graduate Sustainability Consultant",
-        "org": "Arup, Taipei",
-        "text": "Building energy performance modelling and data analysis with Rhino, Grasshopper, EnergyPlus, Ladybug, Honeybee, OpenStudio and Python. Delivered LEED, ASHRAE 90.1/62.1 and EEWH work across energy, water and indoor air quality, and wrote project-specific sustainability guidelines with multidisciplinary teams.",
+        "years": "2026 – now",
+        "role": "Research Assistant, Computer Science and Information Engineering",
+        "org": "National Cheng Kung University, NetDB Lab (Advanced Network Database Lab), Tainan",
+        "text": "Building core computer-science foundations through credit courses in Data Structures (Prof. Mu-Yen Chen) and Computer Architecture and Assembly Language (Prof. Wei-Kuang Teng). Leading preparation of the technical stack for upcoming data-mining and distributed-ledger projects, and taking part in weekly lab seminars.",
     },
     {
-        "years": "2024 – now",
+        "years": "2024 – 2026",
+        "role": "Graduate Consultant, Computational Energy Specialist",
+        "org": "Arup, Taipei",
+        "text": "Automated building-data analysis and performance-index calculations with Python, VBA, GIS and Excel. Built energy-consumption workflows from modelling (AutoCAD, Rhino, Grasshopper) through simulation (EnergyPlus, IES VE, OpenStudio, Ladybug, Honeybee) to analysis, and predicted LEED and EEWH scores for multidisciplinary project teams.",
+    },
+    {
+        "years": "2024 – 2025",
         "role": "AI Trainer",
-        "org": "Outlier, remote, part-time",
-        "text": "Train and refine multilingual large language models: build training data, evaluate model performance and work with AI engineers and researchers on new training methods.",
+        "org": "Outlier, remote",
+        "text": "Trained and refined multilingual large language models through reinforcement learning from human feedback (RLHF): wrote and optimised training data, evaluated model outputs to find weaknesses, and worked with engineers and researchers on new training approaches.",
     },
     {
         "years": "2021 – 2022",
-        "role": "Research Assistant",
+        "role": "Research Assistant, Urban Planning",
         "org": "National Cheng Kung University, Tainan",
-        "text": "Science park site-selection research for Kaohsiung City Council, covering industry life cycles, supply chains, energy, markets and infrastructure, with GIS and statistical analysis of demographics, business models and traffic networks.",
+        "text": "Science-park site-selection research for Kaohsiung City Council: industry life cycles, supply chains, energy, markets and infrastructure, analysed with GIS and statistical methods across demographics, business models and traffic networks.",
     },
 ]
 
@@ -301,17 +435,18 @@ EDUCATION = [
 ]
 
 TOOLKIT = [
-    ("Simulation and modelling", "EnergyPlus, OpenStudio, IES VE, Honeybee, Ladybug, Butterfly, OpenFOAM, LightStanza, Rhino, Grasshopper, Elefront, Revit, AutoCAD, SketchUp"),
-    ("Data science", "Python, R, SQL, SPSS, Excel, Git, Docker"),
-    ("Geospatial", "ArcGIS Pro, ArcGIS Online, QGIS, Google Earth Engine"),
-    ("Standards", "LEED v4, ASHRAE 90.1 and 62.1, EEWH"),
-    ("Visual communication", "InDesign, Illustrator, Photoshop"),
+    ("Languages", "Python, SQL, R, JavaScript (Google Earth Engine), VBA"),
+    ("Data and machine learning", "pandas, NumPy, SciPy, scikit-learn, statsmodels, LightGBM, XGBoost, CatBoost, Plotly, Streamlit, SPSS"),
+    ("Engineering", "Git, GitHub, Docker, web APIs, concurrency with thread pools, YAML-configured pipelines"),
+    ("Geospatial", "ArcGIS Pro, ArcGIS Online, QGIS, Google Earth Engine, Sentinel-2 and Sentinel-5P"),
+    ("Simulation and geometry", "EnergyPlus, OpenStudio, IES VE, Honeybee, Ladybug, Butterfly, OpenFOAM, LightStanza, Rhino, Grasshopper, Elefront, Revit, AutoCAD"),
+    ("Methods", "Time-series feature engineering, anomaly detection, spatial autocorrelation, regression, logistic and discrete-choice models"),
 ]
 
 CREDENTIALS = [
     ("Docker Foundations Professional Certificate", "Docker, via Coursera, 2026"),
     ("Emergency Medical Technician, Level 1", "Taiwan National Fire Agency, 2023"),
-    ("Licentiate member", "Royal Town Planning Institute, elected 2022"),
+    ("Licentiate member", "Royal Town Planning Institute, since 2024 (student member 2022 – 2024)"),
     ("RTPI courses", "Town Planning and the UN SDGs; Planning to Protect Ancient Woodlands and Trees"),
     ("IPMA Level D Certificate", "International Project Management Association, 2021"),
 ]

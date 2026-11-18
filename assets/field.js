@@ -1,122 +1,180 @@
-// Hero: an isotherm drawing. A slowly drifting scalar field is contoured with
-// marching squares and coloured with a thermal-comfort style ramp. The cursor adds heat.
+// Hero: a slow flow field. Particles follow the curl of a 3D value-noise potential and
+// each one draws a short fading trail from its own position history (redrawn every frame,
+// so nothing smears). The cursor adds a gentle swirl.
 (() => {
   const canvas = document.querySelector('.field');
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const hero = canvas.closest('.hero');
+  const readout = document.querySelector('.readout-live');
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const RAMP = [[39,65,208],[79,143,224],[156,198,232],[200,205,200],[242,196,107],[238,122,58],[215,52,42]];
-  const LEVELS = 22, LO = -1.1, HI = 1.1, CELL = 9;
-  let w = 0, h = 0, dpr = 1, nx = 0, ny = 0, grid = null, t = Math.random() * 1000;
-  let running = false, visible = true, last = 0;
-  const mouse = { x: 0, y: 0, a: 0, target: 0 };
-
-  const sources = [
-    { ax: .78, ay: .30, rx: .10, ry: .12, s: .0019, p: 0.0, amp:  1.05, sig: .22 },
-    { ax: .58, ay: .72, rx: .14, ry: .08, s: .0013, p: 2.1, amp: -0.95, sig: .26 },
-    { ax: .92, ay: .80, rx: .06, ry: .10, s: .0023, p: 4.0, amp:  0.70, sig: .16 },
-    { ax: .30, ay: .20, rx: .12, ry: .08, s: .0011, p: 1.3, amp: -0.55, sig: .30 },
-    { ax: .15, ay: .85, rx: .08, ry: .06, s: .0017, p: 5.2, amp:  0.45, sig: .20 },
+  const BG = [23, 32, 43];
+  const INK = [
+    [237, 240, 238],  // paper
+    [143, 167, 255],  // cold blue
+    [92, 124, 250],   // deep blue
+    [242, 165, 107],  // rare warm
   ];
 
-  function color(v) {
-    const u = Math.min(1, Math.max(0, (v - LO) / (HI - LO))) * (RAMP.length - 1);
-    const i = Math.min(RAMP.length - 2, Math.floor(u)), f = u - i;
-    const a = RAMP[i], b = RAMP[i + 1];
-    return `rgb(${a.map((c, k) => Math.round(c + (b[k] - c) * f)).join(',')})`;
+  // --- 3D value noise -------------------------------------------------------
+  const P = new Uint8Array(512);
+  (() => {
+    const p = Array.from({ length: 256 }, (_, i) => i);
+    let seed = 1729;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let i = 255; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
+    for (let i = 0; i < 512; i++) P[i] = p[i & 255];
+  })();
+  const V = new Float32Array(256).map((_, i) => (P[i] / 255) * 2 - 1);
+  const fade = t => t * t * (3 - 2 * t);
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function noise(x, y, z) {
+    const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z);
+    const u = fade(x - X), v = fade(y - Y), w = fade(z - Z);
+    const xi = X & 255, yi = Y & 255, zi = Z & 255;
+    const hsh = (a, b, c) => V[P[P[P[a] + b] + c]];
+    const x1 = lerp(hsh(xi, yi, zi), hsh(xi + 1, yi, zi), u);
+    const x2 = lerp(hsh(xi, yi + 1, zi), hsh(xi + 1, yi + 1, zi), u);
+    const x3 = lerp(hsh(xi, yi, zi + 1), hsh(xi + 1, yi, zi + 1), u);
+    const x4 = lerp(hsh(xi, yi + 1, zi + 1), hsh(xi + 1, yi + 1, zi + 1), u);
+    return lerp(lerp(x1, x2, v), lerp(x3, x4, v), w);
   }
-  const colors = Array.from({ length: LEVELS }, (_, k) => color(LO + (k + .5) * (HI - LO) / LEVELS));
+  const potential = (x, y, z) => noise(x, y, z) + 0.5 * noise(x * 2.1 + 17, y * 2.1 + 9, z * 1.3);
+
+  // --- state -----------------------------------------------------------------
+  let maxDpr = 2, slow = 0, frames = 0, lastNow = 0;
+  let w = 0, h = 0, dpr = 1, parts = [], t = 3.7, running = false, visible = true;
+  let start = performance.now(), lastRead = 0;
+  const mouse = { x: -1e4, y: -1e4, s: 0, target: 0 };
+  const SCALE = 1 / 340;      // spatial scale of the field
+  const SPEED = 0.45;         // px per frame
+  const DT = 0.00042;         // time step: slow evolution
+  const E = 0.08;             // finite-difference step in field units
+  const TRAIL = 44;           // positions kept per particle
+  const EVERY = 3;            // record a position every N frames
+  const BANDS = [0.06, 0.14, 0.26, 0.42]; // alpha from tail to head
+  let tick = 0;
+
+  function spawn(p) {
+    p.x = Math.random() * w; p.y = Math.random() * h;
+    p.hx = new Float32Array(TRAIL).fill(p.x); p.hy = new Float32Array(TRAIL).fill(p.y); p.k = 0; p.n = 1;
+    p.life = 220 + Math.random() * 520;
+    const r = Math.random();
+    p.c = r < 0.72 ? 0 : r < 0.88 ? 1 : r < 0.97 ? 2 : 3;
+        return p;
+  }
 
   function resize() {
     const r = canvas.getBoundingClientRect();
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = Math.min(maxDpr, window.devicePixelRatio || 1);
     w = r.width; h = r.height;
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-    nx = Math.ceil(w / CELL) + 2; ny = Math.ceil(h / CELL) + 2;
-    grid = new Float32Array(nx * ny);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = `rgb(${BG})`; ctx.fillRect(0, 0, w, h);
+    const n = Math.round(Math.min(900, Math.max(260, (w * h) / 1500)));
+    parts = Array.from({ length: n }, () => spawn({}));
+    if (readout) readout.dataset.n = n.toLocaleString('en-US');
   }
 
-  function sample() {
-    const m = Math.max(w, h);
-    const S = sources.map(s => ({
-      x: (s.ax + s.rx * Math.sin(t * s.s * 6 + s.p)) * w,
-      y: (s.ay + s.ry * Math.cos(t * s.s * 5 + s.p * 1.3)) * h,
-      amp: s.amp, k: 1 / (2 * (s.sig * m) ** 2),
-    }));
-    const mk = 1 / (2 * (0.09 * m) ** 2);
-    for (let j = 0; j < ny; j++) {
-      const y = (j - 1) * CELL;
-      for (let i = 0; i < nx; i++) {
-        const x = (i - 1) * CELL;
-        let v = 0.22 * Math.sin(x / m * 7.3 + t * .0021) * Math.cos(y / m * 5.1 - t * .0017)
-              + 0.12 * Math.sin((x + y) / m * 11 + t * .0013);
-        for (const s of S) { const dx = x - s.x, dy = y - s.y; v += s.amp * Math.exp(-(dx * dx + dy * dy) * s.k); }
-        if (mouse.a > 0.01) { const dx = x - mouse.x, dy = y - mouse.y; v += 0.9 * mouse.a * Math.exp(-(dx * dx + dy * dy) * mk); }
-        grid[j * nx + i] = v;
+  function advance() {
+    mouse.s += (mouse.target - mouse.s) * 0.02;
+    for (const p of parts) {
+      const x = p.x * SCALE, y = p.y * SCALE;
+      // curl of the potential: divergence-free, so the flow never piles up
+      let vx = potential(x, y + E, t) - potential(x, y - E, t);
+      let vy = -(potential(x + E, y, t) - potential(x - E, y, t));
+      const m = Math.hypot(vx, vy) || 1;
+      vx = (vx / m) * SPEED; vy = (vy / m) * SPEED;
+      if (mouse.s > 0.01) {
+        const dx = p.x - mouse.x, dy = p.y - mouse.y, d2 = dx * dx + dy * dy, d = Math.sqrt(d2) + 1;
+        const k = mouse.s * Math.exp(-d2 / (2 * 150 * 150)) * 0.9;
+        vx += (-dy / d) * k; vy += (dx / d) * k;
       }
+      p.x += vx; p.y += vy;
+      if (--p.life < 0 || p.x < -4 || p.x > w + 4 || p.y < -4 || p.y > h + 4) { spawn(p); continue; }
+      if (tick % EVERY === 0) { p.k = (p.k + 1) % TRAIL; if (p.n < TRAIL) p.n++; }
+      p.hx[p.k] = p.x; p.hy[p.k] = p.y;
     }
+    t += DT; tick++;
   }
 
   function draw() {
-    sample();
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    ctx.lineWidth = 1; ctx.globalAlpha = 0.62; ctx.lineJoin = 'round';
-    for (let k = 0; k < LEVELS; k++) {
-      const L = LO + (k + .5) * (HI - LO) / LEVELS;
-      ctx.beginPath();
-      for (let j = 0; j < ny - 1; j++) {
-        const y0 = (j - 1) * CELL;
-        for (let i = 0; i < nx - 1; i++) {
-          const a = grid[j * nx + i], b = grid[j * nx + i + 1], c = grid[(j + 1) * nx + i + 1], d = grid[(j + 1) * nx + i];
-          const idx = (a > L) | ((b > L) << 1) | ((c > L) << 2) | ((d > L) << 3);
-          if (idx === 0 || idx === 15) continue;
-          const x0 = (i - 1) * CELL;
-          const top = x0 + CELL * (L - a) / (b - a), right = y0 + CELL * (L - b) / (c - b);
-          const bot = x0 + CELL * (L - d) / (c - d), left = y0 + CELL * (L - a) / (d - a);
-          const seg = (ax, ay, bx, by) => { ctx.moveTo(ax, ay); ctx.lineTo(bx, by); };
-          switch (idx) {
-            case 1: case 14: seg(x0, left, top, y0); break;
-            case 2: case 13: seg(top, y0, x0 + CELL, right); break;
-            case 3: case 12: seg(x0, left, x0 + CELL, right); break;
-            case 4: case 11: seg(x0 + CELL, right, bot, y0 + CELL); break;
-            case 6: case 9: seg(top, y0, bot, y0 + CELL); break;
-            case 7: case 8: seg(x0, left, bot, y0 + CELL); break;
-            case 5: seg(x0, left, top, y0); seg(x0 + CELL, right, bot, y0 + CELL); break;
-            case 10: seg(top, y0, x0 + CELL, right); seg(x0, left, bot, y0 + CELL); break;
-          }
+    ctx.fillStyle = `rgb(${BG})`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.lineWidth = 1; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const per = TRAIL / BANDS.length;
+    for (let c = 0; c < INK.length; c++) {
+      for (let b = 0; b < BANDS.length; b++) {
+        ctx.beginPath();
+        const from = Math.floor(b * per), to = Math.min(TRAIL - 1, Math.ceil((b + 1) * per));
+        for (const p of parts) {
+          if (p.c !== c) continue;
+          const len = p.n - 1;              // segments available, oldest at age len
+          const s0 = TRAIL - 1 - to, s1 = TRAIL - 1 - from; // ages covered by this band
+          if (s0 > len) continue;
+          const aEnd = Math.min(s1, len);
+          let idx = (p.k - aEnd + TRAIL * 2) % TRAIL;
+          ctx.moveTo(p.hx[idx], p.hy[idx]);
+          for (let a = aEnd - 1; a >= s0; a--) { idx = (p.k - a + TRAIL * 2) % TRAIL; ctx.lineTo(p.hx[idx], p.hy[idx]); }
         }
+        const alpha = BANDS[b] * (p => p)(c === 0 ? 1 : 1.15);
+        ctx.strokeStyle = `rgba(${INK[c]},${Math.min(0.5, alpha)})`;
+        ctx.stroke();
       }
-      ctx.strokeStyle = colors[k];
-      ctx.stroke();
     }
+  }
+
+  function step() { advance(); draw(); }
+
+  function label(now) {
+    if (!readout) return;
+    let txt = `curl-noise flow field / ${readout.dataset.n} particles`;
+    if (now !== undefined) {
+      const s = (now - start) / 1000;
+      txt += ` / t ${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    }
+    readout.textContent = txt;
   }
 
   function frame(now) {
     if (!running) return;
-    if (now - last > 33) {
-      last = now; t += 16;
-      mouse.a += (mouse.target - mouse.a) * 0.08;
-      draw();
+    // Adaptive quality: if frames run long on this device, drop to 1x pixel density.
+    if (lastNow && dpr > 1) {
+      frames++; if (now - lastNow > 24) slow++;
+      if (frames === 90) {
+        if (slow > 45) { maxDpr = 1; const r = canvas.getBoundingClientRect(); dpr = 1; canvas.width = Math.round(r.width); canvas.height = Math.round(r.height); ctx.setTransform(1, 0, 0, 1, 0, 0); }
+        frames = 0; slow = 0;
+      }
     }
+    lastNow = now;
+    step();
+    if (now - lastRead > 500) { lastRead = now; label(now); }
     requestAnimationFrame(frame);
   }
-  function start() { if (!running && visible && !document.hidden && !reduce) { running = true; requestAnimationFrame(frame); } }
+  function startLoop() { if (!running && visible && !document.hidden && !reduce) { running = true; requestAnimationFrame(frame); } }
   function stop() { running = false; }
+  function predraw() { for (let i = 0; i < TRAIL * EVERY + 10; i++) advance(); draw(); }
 
-  resize(); draw();
-  const heroEl = canvas.closest('.hero');
-  const ready = () => requestAnimationFrame(() => heroEl.classList.add('is-ready'));
+  resize(); predraw(); label();
+
+  const ready = () => requestAnimationFrame(() => hero.classList.add('is-ready'));
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(ready);
   setTimeout(ready, 900);
-  window.addEventListener('resize', () => { resize(); draw(); });
-  const hero = canvas.parentElement;
+
+  let rt, lastW = window.innerWidth;
+  window.addEventListener('resize', () => {
+    if (Math.abs(window.innerWidth - lastW) < 2) return; // ignore mobile toolbar height changes
+    lastW = window.innerWidth;
+    clearTimeout(rt);
+    rt = setTimeout(() => { stop(); resize(); predraw(); label(); startLoop(); }, 150);
+  });
   hero.addEventListener('pointermove', ev => {
+    if (ev.pointerType !== 'mouse') return;
     const r = canvas.getBoundingClientRect();
     mouse.x = ev.clientX - r.left; mouse.y = ev.clientY - r.top; mouse.target = 1;
   });
   hero.addEventListener('pointerleave', () => { mouse.target = 0; });
-  new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible ? start() : stop(); }).observe(canvas);
-  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
-  start();
+  new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible ? startLoop() : stop(); }).observe(canvas);
+  document.addEventListener('visibilitychange', () => (document.hidden ? stop() : startLoop()));
+  startLoop();
 })();

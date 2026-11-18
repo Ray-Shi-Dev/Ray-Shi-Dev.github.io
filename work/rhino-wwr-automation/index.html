@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Window-to-wall ratio extractor for Rhino | Ray Shi</title>
+<meta name="description" content="A fault-tolerant geometry parser that reads per-floor window-to-wall ratios straight from 3D thermal massing models and exports simulation-ready CSV.">
+<meta name="author" content="Ray Shi">
+<link rel="canonical" href="https://ray-shi-dev.github.io/work/rhino-wwr-automation/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ray Shi">
+<meta property="og:title" content="Window-to-wall ratio extractor for Rhino | Ray Shi">
+<meta property="og:description" content="A fault-tolerant geometry parser that reads per-floor window-to-wall ratios straight from 3D thermal massing models and exports simulation-ready CSV.">
+<meta property="og:url" content="https://ray-shi-dev.github.io/work/rhino-wwr-automation/">
+<meta property="og:image" content="https://ray-shi-dev.github.io/assets/og/rhino-wwr-automation.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#EDF0EE">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css?v=4">
+<script>document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)</script>
+</head>
+<body class="project">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <a class="nav-name" href="/" aria-label="Ray Shi, home">Ray Shi</a>
+  <nav aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a></nav>
+</header>
+<main id="main">
+<article>
+  <header class="p-head">
+    <p class="crumb"><a href="/#work">Selected work</a> <span aria-hidden="true">/</span> Software and machine learning</p>
+    <h1 class="p-title">Window-to-wall ratio extractor for Rhino</h1>
+    <p class="p-sum">A fault-tolerant geometry parser that reads per-floor window-to-wall ratios straight from 3D thermal massing models and exports simulation-ready CSV.</p>
+    <dl class="facts"><div><dt>Type</dt><dd>Computational geometry, automation</dd></div><div><dt>Stack</dt><dd>Python, RhinoScriptSyntax, Rhino.Geometry</dd></div><div><dt>Used for</dt><dd>Energy models, LEED and EEWH submissions</dd></div><div><dt>Code</dt><dd><a href="https://github.com/Ray-Shi-Dev/rhino-wwr-automation">rhino-wwr-automation</a></dd></div></dl>
+    <p class="p-actions"><a class="btn" href="https://github.com/Ray-Shi-Dev/rhino-wwr-automation">View the code on GitHub</a></p>
+  </header>
+  <figure class="p-cover"><img src="/assets/img/rhino-wwr-automation/cover-sm.webp" srcset="/assets/img/rhino-wwr-automation/cover-sm.webp 960w, /assets/img/rhino-wwr-automation/cover.webp 2000w" sizes="(max-width: 1440px) 100vw, 1440px" width="2000" height="1250" alt="Rhino model of a high-rise tower with thermal zones and glazing coloured by layer" fetchpriority="high" decoding="async"></figure>
+  <div class="p-body">
+    <aside class="p-high"><h2>Highlights</h2><ul><li>Treats the model as a data structure, not a drawing</li><li>Survives slab holes, micro-gaps and multi-storey zones</li><li>Distributes multi-floor glazing by vertical overlap</li></ul></aside>
+    <div class="prose"><p>Window-to-wall ratio is a basic input to every energy model and green-building submission, and measuring it by hand is slow. Architectural models are built to look right, not to be measured: slabs have holes for cores and shafts, thermal zones leave 1 to 10 mm gaps that break Boolean unions, and atriums or curtain walls span several floors.</p><h3>How it works</h3><p>The script scans layers automatically, separating thermal zones, underground zones and glazing. It sorts zones by elevation with a 1.5 m tolerance and ignores artefacts under 2 m to find the true floors. For each floor it slices the massing at 1.2 m above the slab, unions the section curves with a 0.1 m tolerance and keeps the largest outer ring as the facade perimeter. Glazing that spans floors is split by how much of its bounding box overlaps each storey. Redraw is switched off while it runs, and the result is saved as a per-floor CSV.</p></div>
+  </div>
+  <section class="p-sheets p-sheets--shots" aria-labelledby="sheets-title">
+    <div class="p-sheets-head"><h2 id="sheets-title">Screenshots</h2><p>Select an image to view it full size.</p></div>
+    <ul class="sheets"><li><figure><button class="sheet" type="button" data-full="/assets/img/rhino-wwr-automation/csv-output.webp" aria-label="Open image 1 of 1 full size"><img src="/assets/img/rhino-wwr-automation/csv-output-sm.webp" alt="Per-floor CSV output: elevation, height, perimeter, wall area, glazing area and WWR" loading="lazy" decoding="async" width="899" height="469"></button><figcaption>Per-floor CSV output: elevation, height, perimeter, wall area, glazing area and WWR</figcaption></figure></li></ul>
+  </section>
+  <nav class="p-next" aria-label="More projects">
+    <a class="prev" href="/work/ml-stat-arb/"><span>Previous project</span><strong>Machine-learning pairs trading for PropTech</strong></a>
+    <a class="next" href="/work/youtube-market-engine/"><span>Next project</span><strong>YouTube market intelligence engine</strong></a>
+  </nav>
+</article>
+</main>
+<dialog class="viewer" aria-label="Image viewer">
+  <img alt="">
+  <div class="viewer-bar">
+    <button type="button" data-act="prev">Previous</button>
+    <span class="viewer-count" aria-live="polite"></span>
+    <button type="button" data-act="next">Next</button>
+    <button type="button" data-act="close">Close</button>
+  </div>
+</dialog>
+<footer class="foot" id="contact">
+  <div class="foot-inner">
+    <h2 class="foot-title">Let's talk</h2>
+    <p class="foot-lede">Open to conversations about data science, machine learning and software engineering.</p>
+    <ul class="foot-links">
+      <li><a href="mailto:ray.ecodesigner@gmail.com">ray.ecodesigner@gmail.com</a></li>
+      <li><a href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn</a></li>
+      <li><a href="https://github.com/Ray-Shi-Dev" rel="me">GitHub</a></li>
+      <li><a href="/cv/">CV</a></li>
+    </ul>
+    <p class="foot-small"><span>© 2026 Ray Shi</span><span>Taiwan</span></p>
+  </div>
+</footer>
+<script src="/assets/site.js?v=4" defer></script>
+<script src="/assets/viewer.js?v=4" defer></script>
+</body></html>
