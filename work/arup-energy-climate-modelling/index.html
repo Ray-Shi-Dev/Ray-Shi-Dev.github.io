@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Energy and climate modelling at Arup | Ray Shi</title>
 <meta name="description" content="Energy, daylight, solar and airflow simulations that guide sustainable building design and LEED submissions.">
 <meta name="author" content="Ray Shi">
@@ -16,41 +16,43 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#EDF0EE">
-<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#0D1218">
+<meta name="color-scheme" content="dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="preload" href="/assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/site.css?v=4">
+<link rel="preload" href="/assets/fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css?v=5">
 <script>document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)</script>
 </head>
 <body class="project">
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav">
-  <a class="nav-name" href="/" aria-label="Ray Shi, home">Ray Shi</a>
-  <nav aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a></nav>
+  <div class="container nav-inner">
+    <a class="brand" href="/" aria-label="Ray Shi, home"><span class="brand-mark" aria-hidden="true"></span>Ray Shi</a>
+    <nav class="nav-links" aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a class="nav-cta" href="mailto:ray.ecodesigner@gmail.com">Contact</a></nav>
+  </div>
 </header>
 <main id="main">
 <article>
-  <header class="p-head">
-    <p class="crumb"><a href="/#work">Selected work</a> <span aria-hidden="true">/</span> Simulation and spatial data</p>
+  <header class="container p-head">
+    <p class="crumb"><a href="/#work">Work</a><span aria-hidden="true">/</span>Simulation and spatial data</p>
     <h1 class="p-title">Energy and climate modelling at Arup</h1>
     <p class="p-sum">Energy, daylight, solar and airflow simulations that guide sustainable building design and LEED submissions.</p>
     <dl class="facts"><div><dt>Location</dt><dd>Taipei, Taiwan</dd></div><div><dt>Context</dt><dd>Arup, Computational Energy Specialist, 2024 to 2026</dd></div><div><dt>Standards</dt><dd>LEED v4, ASHRAE 90.1 and 62.1, EEWH</dd></div><div><dt>Tools</dt><dd>Grasshopper, Honeybee, EnergyPlus, LightStanza, OpenFOAM, ParaView</dd></div></dl>
     
+    <div class="p-visual"><figure><img src="/assets/img/arup-energy-climate-modelling/cover-sm.webp" srcset="/assets/img/arup-energy-climate-modelling/cover-sm.webp 960w, /assets/img/arup-energy-climate-modelling/cover.webp 2000w" sizes="(max-width: 1200px) 100vw, 1200px" width="2000" height="1375" alt="CFD render of airflow around a high-rise tower, with wind speed shown from red to blue" fetchpriority="high" decoding="async"></figure></div>
   </header>
-  <figure class="p-cover"><img src="/assets/img/arup-energy-climate-modelling/cover-sm.webp" srcset="/assets/img/arup-energy-climate-modelling/cover-sm.webp 960w, /assets/img/arup-energy-climate-modelling/cover.webp 2000w" sizes="(max-width: 1440px) 100vw, 1440px" width="2000" height="1375" alt="CFD render of airflow around a high-rise tower, with wind speed shown from red to blue" fetchpriority="high" decoding="async"></figure>
-  <div class="p-body">
+  <div class="container p-body">
     <aside class="p-high"><h2>Highlights</h2><ul><li>Grasshopper scripts that build thermal zones, adjacencies and windows automatically</li><li>EnergyPlus models with ASHRAE 90.1 and 62.1 schedules</li><li>Annual daylight metrics for LEED v4: sDA, ASE and glare</li><li>Facade PV potential and OpenFOAM airflow studies</li></ul><p class="related">Related tool: <a href="/work/rhino-wwr-automation/">Window-to-wall ratio extractor for Rhino</a></p></aside>
     <div class="prose"><p>At Arup I ran the environmental and energy simulations behind sustainable design decisions and policy-driven assessments: whole-building energy models, annual daylight studies, facade solar radiation for photovoltaics, and computational fluid dynamics.</p><h3>Energy models</h3><p>I automated model setup in Grasshopper. The scripts extrude floor plates into thermal zones, intersect them with facade and core masses, solve every surface&#x27;s boundary condition, and generate windows from a target window-to-wall ratio before writing the model to .hbjson. In EnergyPlus I configured plant loops, HVAC systems, daylight controls and ASHRAE 90.1/62.1 schedules, then compared end-use breakdowns and optimisation strategies against baseline models.</p><h3>Daylight and solar</h3><p>LightStanza runs annual Radiance-based daylight simulations on models brought in from Revit or Rhino. Its outputs, including spatial daylight autonomy, annual sunlight exposure, illuminance grids and glare maps, support LEED v4 daylight credits. Facade radiation maps combined with PV module specifications estimate how much of a building&#x27;s demand facade-mounted solar can offset.</p><h3>Airflow</h3><p>For CFD I used Butterfly and Ladybug in Grasshopper with OpenFOAM: set inlet, outlet and turbulence conditions, refine the mesh around facades and openings, and post-process velocity, pressure and streamlines in ParaView to find comfort zones and judge ventilation.</p></div>
   </div>
-  <section class="p-sheets" aria-labelledby="sheets-title">
-    <div class="p-sheets-head"><h2 id="sheets-title">Portfolio sheets</h2><p>4 original presentation boards. Select one to view it full size.</p></div>
+  <section class="container p-gallery" aria-labelledby="sheets-title">
+    <div class="p-gallery-head"><h2 id="sheets-title">Portfolio sheets</h2><p>4 original presentation boards. Select one to view it full size.</p></div>
     <ul class="sheets"><li><figure><button class="sheet" type="button" data-full="/assets/img/arup-energy-climate-modelling/sheet-01.webp" aria-label="Open image 1 of 4 full size"><img src="/assets/img/arup-energy-climate-modelling/sheet-01-sm.webp" alt="Portfolio sheet 1 of 4 for Energy and climate modelling at Arup" loading="lazy" decoding="async" width="900" height="650"></button></figure></li><li><figure><button class="sheet" type="button" data-full="/assets/img/arup-energy-climate-modelling/sheet-02.webp" aria-label="Open image 2 of 4 full size"><img src="/assets/img/arup-energy-climate-modelling/sheet-02-sm.webp" alt="Portfolio sheet 2 of 4 for Energy and climate modelling at Arup" loading="lazy" decoding="async" width="900" height="650"></button></figure></li><li><figure><button class="sheet" type="button" data-full="/assets/img/arup-energy-climate-modelling/sheet-03.webp" aria-label="Open image 3 of 4 full size"><img src="/assets/img/arup-energy-climate-modelling/sheet-03-sm.webp" alt="Portfolio sheet 3 of 4 for Energy and climate modelling at Arup" loading="lazy" decoding="async" width="900" height="650"></button></figure></li><li><figure><button class="sheet" type="button" data-full="/assets/img/arup-energy-climate-modelling/sheet-04.webp" aria-label="Open image 4 of 4 full size"><img src="/assets/img/arup-energy-climate-modelling/sheet-04-sm.webp" alt="Portfolio sheet 4 of 4 for Energy and climate modelling at Arup" loading="lazy" decoding="async" width="900" height="650"></button></figure></li></ul>
   </section>
-  <nav class="p-next" aria-label="More projects">
-    <a class="prev" href="/work/youtube-market-engine/"><span>Previous project</span><strong>YouTube market intelligence engine</strong></a>
-    <a class="next" href="/work/remote-sensing-west-coast/"><span>Next project</span><strong>Remote sensing for environmental monitoring</strong></a>
+  <nav class="container p-next" aria-label="More projects">
+    <a class="prev" href="/work/youtube-market-engine/"><span>Previous</span><strong>YouTube market intelligence engine</strong></a>
+    <a class="next" href="/work/remote-sensing-west-coast/"><span>Next</span><strong>Remote sensing for environmental monitoring</strong></a>
   </nav>
 </article>
 </main>
@@ -63,19 +65,23 @@
     <button type="button" data-act="close">Close</button>
   </div>
 </dialog>
-<footer class="foot" id="contact">
-  <div class="foot-inner">
-    <h2 class="foot-title">Let's talk</h2>
-    <p class="foot-lede">Open to conversations about data science, machine learning and software engineering.</p>
-    <ul class="foot-links">
-      <li><a href="mailto:ray.ecodesigner@gmail.com">ray.ecodesigner@gmail.com</a></li>
-      <li><a href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn</a></li>
-      <li><a href="https://github.com/Ray-Shi-Dev" rel="me">GitHub</a></li>
-      <li><a href="/cv/">CV</a></li>
-    </ul>
-    <p class="foot-small"><span>© 2026 Ray Shi</span><span>Taiwan</span></p>
+<section class="container contact" id="contact" aria-labelledby="contact-title">
+  <div class="contact-card">
+    <h2 id="contact-title">Let's work on something with data.</h2>
+    <p>Open to conversations about data science, machine learning and software engineering roles.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="mailto:ray.ecodesigner@gmail.com">Email me</a>
+      <a class="btn" href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a class="btn" href="https://github.com/Ray-Shi-Dev" rel="me">GitHub <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+  </div>
+</section>
+<footer class="foot">
+  <div class="container foot-inner">
+    <span>© 2026 Ray Shi</span>
+    <nav aria-label="Footer"><a href="/#work">Work</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a><a href="https://www.linkedin.com/in/ray-shi-b633302a8">LinkedIn</a><a href="mailto:ray.ecodesigner@gmail.com">Email</a></nav>
   </div>
 </footer>
-<script src="/assets/site.js?v=4" defer></script>
-<script src="/assets/viewer.js?v=4" defer></script>
+<script src="/assets/site.js?v=5" defer></script>
+<script src="/assets/viewer.js?v=5" defer></script>
 </body></html>

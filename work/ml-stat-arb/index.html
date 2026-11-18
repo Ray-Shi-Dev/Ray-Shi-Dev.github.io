@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Machine-learning pairs trading for PropTech | Ray Shi</title>
 <meta name="description" content="Tests whether gradient-boosting pipelines built for building-energy time series can detect cointegration breakdowns between real-estate stocks and turn them into trading signals.">
 <meta name="author" content="Ray Shi">
@@ -16,38 +16,40 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#EDF0EE">
-<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#0D1218">
+<meta name="color-scheme" content="dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="preload" href="/assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/site.css?v=4">
+<link rel="preload" href="/assets/fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css?v=5">
 <script>document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)</script>
 </head>
 <body class="project">
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav">
-  <a class="nav-name" href="/" aria-label="Ray Shi, home">Ray Shi</a>
-  <nav aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a></nav>
+  <div class="container nav-inner">
+    <a class="brand" href="/" aria-label="Ray Shi, home"><span class="brand-mark" aria-hidden="true"></span>Ray Shi</a>
+    <nav class="nav-links" aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a class="nav-cta" href="mailto:ray.ecodesigner@gmail.com">Contact</a></nav>
+  </div>
 </header>
 <main id="main">
 <article>
-  <header class="p-head">
-    <p class="crumb"><a href="/#work">Selected work</a> <span aria-hidden="true">/</span> Software and machine learning</p>
+  <header class="container p-head">
+    <p class="crumb"><a href="/#work">Work</a><span aria-hidden="true">/</span>Software and machine learning</p>
     <h1 class="p-title">Machine-learning pairs trading for PropTech</h1>
     <p class="p-sum">Tests whether gradient-boosting pipelines built for building-energy time series can detect cointegration breakdowns between real-estate stocks and turn them into trading signals.</p>
     <dl class="facts"><div><dt>Type</dt><dd>Machine learning, quantitative finance</dd></div><div><dt>Stack</dt><dd>Python, pandas, statsmodels, scikit-learn, LightGBM, XGBoost, CatBoost</dd></div><div><dt>Data</dt><dd>Daily prices via yfinance, e.g. PLD and AMT</dd></div><div><dt>Code</dt><dd><a href="https://github.com/Ray-Shi-Dev/ml-stat-arb">ml-stat-arb</a></dd></div></dl>
-    <p class="p-actions"><a class="btn" href="https://github.com/Ray-Shi-Dev/ml-stat-arb">View the code on GitHub</a></p>
+    <div class="p-actions"><a class="btn btn-primary" href="https://github.com/Ray-Shi-Dev/ml-stat-arb">View the code <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
+    <div class="p-visual"><div class="viz-wrap"><svg class="viz" viewBox="0 0 640 400" role="img" aria-label="Schematic line chart of a spread z-score: a short is entered at two sigma and exited at the mean; a second short is stopped out at three sigma" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"><text class="v-cap" x="40" y="44">schematic: spread z-score and trading rule</text><rect class="v-band3" x="40" y="85" width="560" height="240"/><text class="v-cap" x="50" y="315">±3σ stop-loss</text><rect class="v-band2" x="40" y="125" width="560" height="160"/><text class="v-cap" x="50" y="275">±2σ entry</text><line class="v-rule" x1="40" x2="600" y1="205" y2="205"/><path class="v-line" d="M40.0,196.6 L42.0,194.7 L44.0,193.0 L46.0,191.3 L48.0,189.8 L50.0,188.4 L52.0,187.3 L54.0,186.3 L56.0,185.5 L58.0,184.9 L60.0,184.5 L62.0,184.3 L64.0,184.3 L66.0,184.5 L68.0,184.8 L70.0,185.3 L72.0,185.9 L74.0,186.6 L76.0,187.4 L78.0,188.2 L80.0,188.9 L82.0,189.7 L84.0,190.5 L86.0,191.1 L88.0,191.7 L90.0,192.2 L92.0,192.6 L94.0,192.9 L96.0,193.0 L98.0,193.1 L100.0,193.0 L102.0,192.8 L104.0,192.5 L106.0,192.2 L108.0,191.8 L110.0,191.4 L112.0,190.9 L114.0,190.4 L116.0,190.0 L118.0,189.5 L120.0,189.1 L122.0,188.8 L124.0,188.4 L126.0,188.1 L128.0,187.9 L130.0,187.6 L132.0,187.4 L134.0,187.1 L136.0,186.7 L138.0,186.3 L140.0,185.7 L142.0,185.0 L144.0,184.0 L146.0,182.8 L148.0,181.2 L150.0,179.4 L152.0,177.1 L154.0,174.5 L156.0,171.5 L158.0,168.0 L160.0,164.1 L162.0,159.8 L164.0,155.2 L166.0,150.2 L168.0,144.8 L170.0,139.3 L172.0,133.6 L174.0,127.8 L176.0,122.1 L178.0,116.4 L180.0,111.0 L182.0,105.9 L184.0,101.2 L186.0,97.1 L188.0,93.6 L190.0,90.8 L192.0,88.7 L194.0,87.4 L196.0,87.0 L198.0,87.4 L200.0,88.7 L202.0,90.8 L204.0,93.7 L206.0,97.4 L208.0,101.7 L210.0,106.6 L212.0,112.0 L214.0,117.7 L216.0,123.8 L218.0,130.1 L220.0,136.4 L222.0,142.8 L224.0,149.0 L226.0,155.1 L228.0,161.0 L230.0,166.6 L232.0,171.9 L234.0,176.8 L236.0,181.3 L238.0,185.5 L240.0,189.3 L242.0,192.7 L244.0,195.8 L246.0,198.6 L248.0,201.2 L250.0,203.5 L252.0,205.6 L254.0,207.6 L256.0,209.4 L258.0,211.1 L260.0,212.8 L262.0,214.4 L264.0,216.0 L266.0,217.7 L268.0,219.3 L270.0,220.9 L272.0,222.5 L274.0,224.1 L276.0,225.6 L278.0,227.1 L280.0,228.6 L282.0,230.0 L284.0,231.3 L286.0,232.4 L288.0,233.4 L290.0,234.3 L292.0,235.0 L294.0,235.5 L296.0,235.7 L298.0,235.8 L300.0,235.7 L302.0,235.3 L304.0,234.8 L306.0,234.1 L308.0,233.2 L310.0,232.1 L312.0,231.0 L314.0,229.7 L316.0,228.4 L318.0,227.1 L320.0,225.7 L322.0,224.4 L324.0,223.1 L326.0,221.9 L328.0,220.8 L330.0,219.8 L332.0,218.9 L334.0,218.1 L336.0,217.5 L338.0,217.1 L340.0,216.8 L342.0,216.6 L344.0,216.5 L346.0,216.5 L348.0,216.6 L350.0,216.8 L352.0,217.0 L354.0,217.3 L356.0,217.5 L358.0,217.8 L360.0,217.9 L362.0,218.1 L364.0,218.1 L366.0,218.1 L368.0,217.9 L370.0,217.6 L372.0,217.3 L374.0,216.8 L376.0,216.2 L378.0,215.6 L380.0,214.8 L382.0,213.9 L384.0,213.0 L386.0,212.0 L388.0,210.9 L390.0,209.8 L392.0,208.7 L394.0,207.4 L396.0,206.2 L398.0,204.8 L400.0,203.4 L402.0,201.8 L404.0,200.2 L406.0,198.3 L408.0,196.3 L410.0,194.1 L412.0,191.7 L414.0,188.9 L416.0,185.9 L418.0,182.4 L420.0,178.6 L422.0,174.4 L424.0,169.8 L426.0,164.8 L428.0,159.3 L430.0,153.4 L432.0,147.1 L434.0,140.5 L436.0,133.5 L438.0,126.3 L440.0,118.9 L442.0,111.4 L444.0,103.8 L446.0,96.3 L448.0,89.0 L450.0,81.9 L452.0,75.2 L454.0,68.9 L456.0,63.2 L458.0,58.1 L460.0,53.6 L462.0,50.0 L464.0,47.1 L466.0,45.2 L468.0,44.1 L470.0,43.8 L472.0,44.5 L474.0,46.0 L476.0,48.3 L478.0,51.3 L480.0,55.1 L482.0,59.5 L484.0,64.4 L486.0,69.7 L488.0,75.4 L490.0,81.3 L492.0,87.4 L494.0,93.6 L496.0,99.7 L498.0,105.7 L500.0,111.6 L502.0,117.3 L504.0,122.6 L506.0,127.7 L508.0,132.4 L510.0,136.7 L512.0,140.7 L514.0,144.3 L516.0,147.6 L518.0,150.5 L520.0,153.1 L522.0,155.5 L524.0,157.6 L526.0,159.6 L528.0,161.4 L530.0,163.0 L532.0,164.6 L534.0,166.2 L536.0,167.7 L538.0,169.3 L540.0,170.9 L542.0,172.6 L544.0,174.3 L546.0,176.1 L548.0,178.0 L550.0,179.9 L552.0,181.8 L554.0,183.8 L556.0,185.8 L558.0,187.8 L560.0,189.8 L562.0,191.7 L564.0,193.5 L566.0,195.2 L568.0,196.8 L570.0,198.2 L572.0,199.5 L574.0,200.6 L576.0,201.5 L578.0,202.3 L580.0,202.9 L582.0,203.3 L584.0,203.5 L586.0,203.6 L588.0,203.6 L590.0,203.5 L592.0,203.3 L594.0,203.1 L596.0,202.8 L598.0,202.6 L600.0,202.3"/><circle class="v-dot" cx="176.0" cy="122.1" r="6"/><text class="v-lab" x="188.0" y="127.1">short</text><circle class="v-dot-ok" cx="252.0" cy="205.6" r="6"/><text class="v-lab" x="264.0" y="210.6">exit</text><circle class="v-dot" cx="440.0" cy="118.9" r="6"/><text class="v-lab" x="428.0" y="123.9" text-anchor="end">short</text><circle class="v-dot-warm" cx="450.0" cy="81.9" r="6"/><text class="v-lab" x="438.0" y="86.9" text-anchor="end">stop</text><text class="v-cap" x="40" y="372">LightGBM + XGBoost forecast the spread; the rule acts on its z-score</text></svg></div></div>
   </header>
-  <figure class="p-cover"><img src="/assets/img/ml-stat-arb/cover-sm.webp" srcset="/assets/img/ml-stat-arb/cover-sm.webp 960w, /assets/img/ml-stat-arb/cover.webp 2000w" sizes="(max-width: 1440px) 100vw, 1440px" width="2000" height="1250" alt="Diagram of the pipeline: price data, lag and rolling features with Savitzky-Golay smoothing, a gradient-boosting ensemble, and trading rules at two and three standard deviations" fetchpriority="high" decoding="async"></figure>
-  <div class="p-body">
+  <div class="container p-body">
     <aside class="p-high"><h2>Highlights</h2><ul><li>Pairs trading framed as anomaly detection on the spread</li><li>Lag, rolling-window and Savitzky-Golay features</li><li>Modular pipeline: loader, features, clustering, ensemble, backtest</li></ul></aside>
     <div class="prose"><p>This started while I was reproducing Prof. Chun Fu&#x27;s workflows for the ASHRAE Great Energy Predictor III and LEAD competitions. Gradient-boosting machines with careful time-series features win those problems, and pairs trading is a kind of anomaly detection: you look for moments when the spread between two related assets breaks from its history. So I tested whether the same pipeline transfers to financial time series, using PropTech and REIT pairs such as Prologis (PLD) and American Tower (AMT).</p><h3>Method</h3><p>Prices are cleaned and turned into a feature matrix of time-lag features, ratios and differences, and rolling-window statistics. A Savitzky-Golay filter smooths microstructure noise while keeping the height of real peaks in the spread, which a moving average would flatten and delay. An ensemble of LightGBM and XGBoost models predicts the spread, and the trading logic enters when it moves beyond two standard deviations and stops out beyond three.</p><h3>Engineering</h3><p>The code is split into a data loader, feature builder, clustering step, model ensemble and backtester, configured from one YAML file. A notebook walks through the exploratory analysis, the smoothing and the model training.</p></div>
   </div>
   
-  <nav class="p-next" aria-label="More projects">
-    <a class="prev" href="/work/vectorized-timeseries-scaling/"><span>Previous project</span><strong>Scaling an energy anomaly-detection pipeline</strong></a>
-    <a class="next" href="/work/rhino-wwr-automation/"><span>Next project</span><strong>Window-to-wall ratio extractor for Rhino</strong></a>
+  <nav class="container p-next" aria-label="More projects">
+    <a class="prev" href="/work/vectorized-timeseries-scaling/"><span>Previous</span><strong>Scaling an energy anomaly-detection pipeline</strong></a>
+    <a class="next" href="/work/rhino-wwr-automation/"><span>Next</span><strong>Window-to-wall ratio extractor for Rhino</strong></a>
   </nav>
 </article>
 </main>
@@ -60,19 +62,23 @@
     <button type="button" data-act="close">Close</button>
   </div>
 </dialog>
-<footer class="foot" id="contact">
-  <div class="foot-inner">
-    <h2 class="foot-title">Let's talk</h2>
-    <p class="foot-lede">Open to conversations about data science, machine learning and software engineering.</p>
-    <ul class="foot-links">
-      <li><a href="mailto:ray.ecodesigner@gmail.com">ray.ecodesigner@gmail.com</a></li>
-      <li><a href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn</a></li>
-      <li><a href="https://github.com/Ray-Shi-Dev" rel="me">GitHub</a></li>
-      <li><a href="/cv/">CV</a></li>
-    </ul>
-    <p class="foot-small"><span>© 2026 Ray Shi</span><span>Taiwan</span></p>
+<section class="container contact" id="contact" aria-labelledby="contact-title">
+  <div class="contact-card">
+    <h2 id="contact-title">Let's work on something with data.</h2>
+    <p>Open to conversations about data science, machine learning and software engineering roles.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="mailto:ray.ecodesigner@gmail.com">Email me</a>
+      <a class="btn" href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a class="btn" href="https://github.com/Ray-Shi-Dev" rel="me">GitHub <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
+  </div>
+</section>
+<footer class="foot">
+  <div class="container foot-inner">
+    <span>© 2026 Ray Shi</span>
+    <nav aria-label="Footer"><a href="/#work">Work</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a><a href="https://www.linkedin.com/in/ray-shi-b633302a8">LinkedIn</a><a href="mailto:ray.ecodesigner@gmail.com">Email</a></nav>
   </div>
 </footer>
-<script src="/assets/site.js?v=4" defer></script>
-<script src="/assets/viewer.js?v=4" defer></script>
+<script src="/assets/site.js?v=5" defer></script>
+<script src="/assets/viewer.js?v=5" defer></script>
 </body></html>
