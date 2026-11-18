@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube market intelligence engine | Ray Shi</title>
+<meta name="description" content="A Streamlit data product that pulls YouTube data in parallel, isolates videos that beat their own channel&#x27;s baseline and scores how open a niche is from 0 to 100.">
+<meta name="author" content="Ray Shi">
+<link rel="canonical" href="https://ray-shi-dev.github.io/work/youtube-market-engine/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ray Shi">
+<meta property="og:title" content="YouTube market intelligence engine | Ray Shi">
+<meta property="og:description" content="A Streamlit data product that pulls YouTube data in parallel, isolates videos that beat their own channel&#x27;s baseline and scores how open a niche is from 0 to 100.">
+<meta property="og:url" content="https://ray-shi-dev.github.io/work/youtube-market-engine/">
+<meta property="og:image" content="https://ray-shi-dev.github.io/assets/og/youtube-market-engine.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#EDF0EE">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css?v=4">
+<script>document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)</script>
+</head>
+<body class="project">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <a class="nav-name" href="/" aria-label="Ray Shi, home">Ray Shi</a>
+  <nav aria-label="Primary"><a href="/#work" aria-current="page">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a></nav>
+</header>
+<main id="main">
+<article>
+  <header class="p-head">
+    <p class="crumb"><a href="/#work">Selected work</a> <span aria-hidden="true">/</span> Software and machine learning</p>
+    <h1 class="p-title">YouTube market intelligence engine</h1>
+    <p class="p-sum">A Streamlit data product that pulls YouTube data in parallel, isolates videos that beat their own channel&#x27;s baseline and scores how open a niche is from 0 to 100.</p>
+    <dl class="facts"><div><dt>Type</dt><dd>Data product, analytics</dd></div><div><dt>Stack</dt><dd>Python, Streamlit, pandas, Plotly, YouTube Data API v3</dd></div><div><dt>Concurrency</dt><dd>ThreadPoolExecutor for parallel API calls</dd></div><div><dt>Code</dt><dd><a href="https://github.com/Ray-Shi-Dev/youtube-market-engine">youtube-market-engine</a></dd></div></dl>
+    <p class="p-actions"><a class="btn" href="https://github.com/Ray-Shi-Dev/youtube-market-engine">View the code on GitHub</a></p>
+  </header>
+  <figure class="p-cover"><img src="/assets/img/youtube-market-engine/cover-sm.webp" srcset="/assets/img/youtube-market-engine/cover-sm.webp 960w, /assets/img/youtube-market-engine/cover.webp 2000w" sizes="(max-width: 1440px) 100vw, 1440px" width="2000" height="1250" alt="Diagram of the viral multiplier, a video&#x27;s views divided by its channel&#x27;s median views, and the three parts of the niche score" fetchpriority="high" decoding="async"></figure>
+  <div class="p-body">
+    <aside class="p-high"><h2>Highlights</h2><ul><li>Parallel API ingestion across channels</li><li>Viral multiplier: views over the channel&#x27;s median</li><li>Niche score with a penalty for markets dominated by large channels</li></ul></aside>
+    <div class="prose"><p>Creators usually pick topics by instinct, which fails in crowded markets. This tool measures the barrier to entry for a topic with live data, so a high-demand, low-competition niche stands out and a market held by a few giant channels is flagged.</p><h3>How it works</h3><p>For a topic and region it finds the top channels, then fetches their upload playlists and statistics in parallel with a thread pool to cut ingestion time. Each video gets a viral multiplier, its views divided by the median views of its own channel, so demand is measured independently of subscriber count. The niche score rewards market depth (how many outliers exist) and viral intensity (how strong they are), and applies a penalty when channels with more than a million subscribers hold over half the market.</p><h3>Interface</h3><p>The Streamlit app has a single-topic dashboard with a score gauge, an opportunity map of upload date against viral multiplier, a tag explorer for long-tail keywords, and a head-to-head comparison of two topics.</p></div>
+  </div>
+  <section class="p-sheets p-sheets--shots" aria-labelledby="sheets-title">
+    <div class="p-sheets-head"><h2 id="sheets-title">Screenshots</h2><p>Select an image to view it full size.</p></div>
+    <ul class="sheets"><li><figure><button class="sheet" type="button" data-full="/assets/img/youtube-market-engine/dashboard.webp" aria-label="Open image 1 of 4 full size"><img src="/assets/img/youtube-market-engine/dashboard-sm.webp" alt="Market health check with the 0 to 100 opportunity score" loading="lazy" decoding="async" width="900" height="301"></button><figcaption>Market health check with the 0 to 100 opportunity score</figcaption></figure></li><li><figure><button class="sheet" type="button" data-full="/assets/img/youtube-market-engine/opportunity-map.webp" aria-label="Open image 2 of 4 full size"><img src="/assets/img/youtube-market-engine/opportunity-map-sm.webp" alt="Opportunity map and ranked videos" loading="lazy" decoding="async" width="900" height="371"></button><figcaption>Opportunity map and ranked videos</figcaption></figure></li><li><figure><button class="sheet" type="button" data-full="/assets/img/youtube-market-engine/tags.webp" aria-label="Open image 3 of 4 full size"><img src="/assets/img/youtube-market-engine/tags-sm.webp" alt="Opportunity categories and hidden keyword frequency" loading="lazy" decoding="async" width="900" height="284"></button><figcaption>Opportunity categories and hidden keyword frequency</figcaption></figure></li><li><figure><button class="sheet" type="button" data-full="/assets/img/youtube-market-engine/battle.webp" aria-label="Open image 4 of 4 full size"><img src="/assets/img/youtube-market-engine/battle-sm.webp" alt="Head-to-head comparison of two topics" loading="lazy" decoding="async" width="900" height="392"></button><figcaption>Head-to-head comparison of two topics</figcaption></figure></li></ul>
+  </section>
+  <nav class="p-next" aria-label="More projects">
+    <a class="prev" href="/work/rhino-wwr-automation/"><span>Previous project</span><strong>Window-to-wall ratio extractor for Rhino</strong></a>
+    <a class="next" href="/work/arup-energy-climate-modelling/"><span>Next project</span><strong>Energy and climate modelling at Arup</strong></a>
+  </nav>
+</article>
+</main>
+<dialog class="viewer" aria-label="Image viewer">
+  <img alt="">
+  <div class="viewer-bar">
+    <button type="button" data-act="prev">Previous</button>
+    <span class="viewer-count" aria-live="polite"></span>
+    <button type="button" data-act="next">Next</button>
+    <button type="button" data-act="close">Close</button>
+  </div>
+</dialog>
+<footer class="foot" id="contact">
+  <div class="foot-inner">
+    <h2 class="foot-title">Let's talk</h2>
+    <p class="foot-lede">Open to conversations about data science, machine learning and software engineering.</p>
+    <ul class="foot-links">
+      <li><a href="mailto:ray.ecodesigner@gmail.com">ray.ecodesigner@gmail.com</a></li>
+      <li><a href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn</a></li>
+      <li><a href="https://github.com/Ray-Shi-Dev" rel="me">GitHub</a></li>
+      <li><a href="/cv/">CV</a></li>
+    </ul>
+    <p class="foot-small"><span>© 2026 Ray Shi</span><span>Taiwan</span></p>
+  </div>
+</footer>
+<script src="/assets/site.js?v=4" defer></script>
+<script src="/assets/viewer.js?v=4" defer></script>
+</body></html>

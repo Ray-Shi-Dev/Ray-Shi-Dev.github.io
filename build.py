@@ -2,14 +2,14 @@
 import json, html
 from pathlib import Path
 from PIL import Image
-from content import (SITE, GROUPS, PROJECTS, REPOS, VENTURES, ABOUT, EXPERIENCE,
+from content import (SITE, GROUPS, PROJECTS, VENTURES, ABOUT, EXPERIENCE,
                      EDUCATION, TOOLKIT, CREDENTIALS, SERVICE)
 
 ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION = "3"  # bump to bust caches when CSS/JS change
+VERSION = "4"  # bump to bust caches when CSS/JS change
 
 
 def size(path):
@@ -51,14 +51,14 @@ def head(title, desc, path, og, extra=""):
 {extra}</head>"""
 
 
-NAV = [("Work", "/#work"), ("Experience", "/#experience"), ("Code", "/#code"), ("About", "/#about"), ("CV", "/cv/")]
+NAV = [("Work", "/#work"), ("Experience", "/#experience"), ("About", "/#about"), ("CV", "/cv/"), ("GitHub", SITE["github"])]
 
 
-def nav(current=""):
+def nav(current="", dark=False):
     links = "".join(
         f'<a href="{h}"{" aria-current=\"page\"" if t == current else ""}>{t}</a>' for t, h in NAV)
     return f"""<a class="skip" href="#main">Skip to content</a>
-<header class="nav">
+<header class="nav{' nav--dark' if dark else ''}">
   <a class="nav-name" href="/" aria-label="Ray Shi, home">Ray Shi</a>
   <nav aria-label="Primary">{links}</nav>
 </header>"""
@@ -68,7 +68,7 @@ def footer():
     return f"""<footer class="foot" id="contact">
   <div class="foot-inner">
     <h2 class="foot-title">Let's talk</h2>
-    <p class="foot-lede">Open to conversations about building performance, spatial data science and urban projects.</p>
+    <p class="foot-lede">Open to conversations about data science, machine learning and software engineering.</p>
     <ul class="foot-links">
       <li><a href="mailto:{SITE['email']}">{SITE['email']}</a></li>
       <li><a href="{SITE['linkedin']}" rel="me">LinkedIn</a></li>
@@ -91,22 +91,33 @@ def img_tag(slug, alt, cls="", sizes="100vw", eager=False):
 
 
 def facts_block(facts):
-    rows = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in facts)
+    def val(k, v):
+        return f'<a href="https://{e(v)}">{e(v.split("/")[-1])}</a>' if k == "Code" else e(v)
+    rows = "".join(f"<div><dt>{e(k)}</dt><dd>{val(k, v)}</dd></div>" for k, v in facts)
     return f'<dl class="facts">{rows}</dl>'
 
 
 def project_row(p):
-    loc = dict(p["facts"]).get("Location", "")
+    f = dict(p["facts"])
+    first = ("Stack", f["Stack"]) if p.get("kind") == "software" else ("Location", f.get("Location", ""))
+    second = ("Type", f["Type"]) if p.get("kind") == "software" else ("Methods", p["tags"])
     return f"""<li class="row">
   <a class="row-link" href="/work/{p['slug']}/">
     <figure class="row-img">{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 900px) 100vw, 58vw")}</figure>
     <div class="row-text">
       <h3 class="row-title">{e(p['title'])}</h3>
       <p class="row-sum">{e(p['summary'])}</p>
-      <dl class="row-meta"><div><dt>Location</dt><dd>{e(loc)}</dd></div><div><dt>Methods</dt><dd>{e(p['tags'])}</dd></div></dl>
+      <dl class="row-meta"><div><dt>{first[0]}</dt><dd>{e(first[1])}</dd></div><div><dt>{second[0]}</dt><dd>{e(second[1])}</dd></div></dl>
     </div>
   </a>
 </li>"""
+
+
+def project_card(p):
+    loc = dict(p["facts"]).get("Location", "")
+    return f"""<li class="card"><a href="/work/{p['slug']}/">
+  <figure>{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 900px) 100vw, 30vw")}</figure>
+  <h4>{e(p['title'])}</h4><p>{e(loc)}</p></a></li>"""
 
 
 def timeline(items):
@@ -129,7 +140,7 @@ def jsonld():
         "sameAs": [SITE["linkedin"], SITE["github"]],
         "alumniOf": [{"@type": "CollegeOrUniversity", "name": n} for n in
                      ["The University of Manchester", "National Cheng Kung University", "National University of Kaohsiung"]],
-        "knowsAbout": ["Building energy simulation", "Building physics", "Data science", "GIS", "Urban design", "Urban heat island mitigation"],
+        "knowsAbout": ["Data science", "Machine learning", "Python", "Time-series analysis", "Spatial statistics", "GIS", "Building energy simulation", "Computational geometry"],
     }
     return f'<script type="application/ld+json">{json.dumps(data)}</script>\n'
 
@@ -137,14 +148,15 @@ def jsonld():
 def home():
     groups_html = ""
     for key, label, lede in GROUPS:
-        rows = "".join(project_row(p) for p in PROJECTS if p["group"] == key)
-        groups_html += f"""<section class="group" aria-labelledby="g-{key}">
+        items = [p for p in PROJECTS if p["group"] == key]
+        if key == "design":
+            inner = f'<ul class="cards">{"".join(project_card(p) for p in items)}</ul>'
+        else:
+            inner = f'<ul class="rows">{"".join(project_row(p) for p in items)}</ul>'
+        groups_html += f"""<section class="group group--{key}" aria-labelledby="g-{key}">
   <header class="group-head"><h3 id="g-{key}" class="group-title">{e(label)}</h3><p>{e(lede)}</p></header>
-  <ul class="rows">{rows}</ul>
+  {inner}
 </section>"""
-
-    repos = "".join(f"""<li class="repo"><a href="{SITE['github']}/{r['slug']}">
-  <h3 class="repo-title">{e(r['title'])}</h3><p>{e(r['text'])}</p><p class="repo-meta"><span>{e(r['slug'])}</span><span>{e(r['lang'])}</span></p></a></li>""" for r in REPOS)
 
     if VENTURES:
         vitems = "".join(f"""<li class="venture"><a href="{e(v['url'])}"><h3>{e(v['name'])}</h3><p>{e(v['text'])}</p><p class="repo-meta"><span>{e(v.get('status', ''))}</span></p></a></li>""" for v in VENTURES)
@@ -155,18 +167,19 @@ def home():
     now = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in SITE["now"])
     bio = "".join(f"<p>{e(x)}</p>" for x in ABOUT["bio"])
     toolkit = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in TOOLKIT)
-    page = head("Ray Shi: building physics, data science and urban design", SITE["description"], "/", "/assets/og/home.jpg", jsonld())
+    page = head("Ray Shi: data science and computational engineering", SITE["description"], "/", "/assets/og/home.jpg", jsonld())
     page += f"""
 <body class="home">
-{nav()}
+{nav(dark=True)}
 <main id="main">
 <section class="hero" aria-label="Introduction">
   <canvas class="field" aria-hidden="true"></canvas>
   <div class="hero-inner">
     <h1 class="hero-name"><span class="ln"><span>Ray</span></span><span class="ln"><span>Shi</span></span></h1>
+    <p class="hero-role">{e(SITE['role'])}</p>
     <p class="hero-intro">{e(SITE['intro'])}</p>
     <dl class="titleblock">{now}<div><dt>Contact</dt><dd><a href="mailto:{SITE['email']}">Email</a>, <a href="{SITE['linkedin']}">LinkedIn</a>, <a href="{SITE['github']}">GitHub</a></dd></div></dl>
-    <div class="legend" aria-hidden="true"><span>Cooler</span><i></i><span>Warmer</span><em>Isotherms drift with time; your cursor adds heat.</em></div>
+    <p class="readout" aria-hidden="true"><span class="readout-live">curl-noise flow field</span><span class="readout-hint">Move the cursor to stir it.</span></p>
   </div>
 </section>
 
@@ -186,12 +199,6 @@ def home():
     <dl class="toolkit">{toolkit}</dl>
   </div>
   <p class="record-cv"><a class="btn" href="/cv/">View the full CV</a></p>
-</section>
-
-<section class="section" id="code" aria-labelledby="code-title">
-  <h2 id="code-title" class="section-title">Code</h2>
-  <p class="section-lede">Open-source tools and experiments on GitHub.</p>
-  <ul class="repos">{repos}</ul>
 </section>
 
 <section class="section section--slim" id="ventures" aria-labelledby="ventures-title">
@@ -224,10 +231,24 @@ def project_page(i, p):
     slug = p["slug"]
     nxt = PROJECTS[(i + 1) % len(PROJECTS)]
     prv = PROJECTS[i - 1]
-    sh = sheets(slug)
-    gallery = "".join(
-        f"""<li><button class="sheet" type="button" data-full="/assets/img/{slug}/{s.replace('-sm', '')}" aria-label="Open sheet {n} of {len(sh)} full size"><img src="/assets/img/{slug}/{s}" alt="Portfolio sheet {n} of {len(sh)} for {e(p['title'])}" loading="lazy" decoding="async" width="900" height="650"></button></li>"""
-        for n, s in enumerate(sh, 1))
+    software = p.get("kind") == "software"
+    if software:
+        items = [(f"/assets/img/{g.removesuffix('.webp')}.webp", f"/assets/img/{g.removesuffix('.webp')}-sm.webp", cap) for g, cap in p.get("gallery", [])]
+    else:
+        items = [(f"/assets/img/{slug}/{s.replace('-sm', '')}", f"/assets/img/{slug}/{s}", None) for s in sheets(slug)]
+    sh = items
+    def thumb(n, full, sm, cap):
+        w, hh = size(sm)
+        alt = cap or f"Portfolio sheet {n} of {len(items)} for {p['title']}"
+        capt = f"<figcaption>{e(cap)}</figcaption>" if cap else ""
+        return f"""<li><figure><button class="sheet" type="button" data-full="{full}" aria-label="Open image {n} of {len(items)} full size"><img src="{sm}" alt="{e(alt)}" loading="lazy" decoding="async" width="{w}" height="{hh}"></button>{capt}</figure></li>"""
+    gallery = "".join(thumb(n, *it) for n, it in enumerate(items, 1))
+    results = ""
+    if p.get("results"):
+        hd = "".join(f"<th scope=\"col\">{e(x)}</th>" for x in p["results_head"])
+        rows = "".join("<tr>" + f"<th scope=\"row\">{e(r[0])}</th>" + "".join(f"<td>{e(c)}</td>" for c in r[1:]) + "</tr>" for r in p["results"])
+        results = f'<figure class="results"><figcaption>Benchmark results</figcaption><table><thead><tr>{hd}</tr></thead><tbody>{rows}</tbody></table></figure>'
+    repo_btn = f'<p class="p-actions"><a class="btn" href="{SITE["github"]}/{p["repo"]}">View the code on GitHub</a></p>' if software else ""
     body = ""
     for h, t in p["body"]:
         body += (f"<h3>{e(h)}</h3>" if h else "") + f"<p>{e(t)}</p>"
@@ -235,9 +256,19 @@ def project_page(i, p):
         body += f'<figure class="code"><figcaption>Google Earth Engine: water mask and turbidity</figcaption><pre tabindex="0"><code>{e(p["code"])}</code></pre></figure>'
     rel = ""
     for r in p.get("related", []):
-        repo = next(x for x in REPOS if x["slug"] == r)
-        rel += f'<p class="related">Related code: <a href="{SITE["github"]}/{r}">{e(repo["title"])}</a></p>'
+        other = next(x for x in PROJECTS if x["slug"] == r)
+        rel += f'<p class="related">Related tool: <a href="/work/{r}/">{e(other["title"])}</a></p>'
     hl = "".join(f"<li>{e(x)}</li>" for x in p["highlights"])
+    if not items:
+        gallery_section = ""
+    else:
+        gtitle = "Screenshots" if software else "Portfolio sheets"
+        glede = ("Select an image to view it full size." if software else
+                 f"{len(items)} original presentation boards. Select one to view it full size.")
+        gallery_section = f"""<section class="p-sheets{' p-sheets--shots' if software else ''}" aria-labelledby="sheets-title">
+    <div class="p-sheets-head"><h2 id="sheets-title">{gtitle}</h2><p>{glede}</p></div>
+    <ul class="sheets">{gallery}</ul>
+  </section>"""
     group_label = dict((k, l) for k, l, _ in GROUPS)[p["group"]]
     page = head(f"{p['title']} | Ray Shi", p["summary"], f"/work/{slug}/", f"/assets/og/{slug}.jpg")
     page += f"""
@@ -250,23 +281,21 @@ def project_page(i, p):
     <h1 class="p-title">{e(p['title'])}</h1>
     <p class="p-sum">{e(p['summary'])}</p>
     {facts_block(p['facts'])}
+    {repo_btn}
   </header>
   <figure class="p-cover">{img_tag(slug, p['cover_alt'], sizes="(max-width: 1440px) 100vw, 1440px", eager=True)}</figure>
   <div class="p-body">
     <aside class="p-high"><h2>Highlights</h2><ul>{hl}</ul>{rel}</aside>
-    <div class="prose">{body}</div>
+    <div class="prose">{body}{results}</div>
   </div>
-  <section class="p-sheets" aria-labelledby="sheets-title">
-    <div class="p-sheets-head"><h2 id="sheets-title">Portfolio sheets</h2><p>{len(sh)} original presentation boards. Select one to view it full size.</p></div>
-    <ul class="sheets">{gallery}</ul>
-  </section>
+  {gallery_section}
   <nav class="p-next" aria-label="More projects">
     <a class="prev" href="/work/{prv['slug']}/"><span>Previous project</span><strong>{e(prv['title'])}</strong></a>
     <a class="next" href="/work/{nxt['slug']}/"><span>Next project</span><strong>{e(nxt['title'])}</strong></a>
   </nav>
 </article>
 </main>
-<dialog class="viewer" aria-label="Sheet viewer">
+<dialog class="viewer" aria-label="Image viewer">
   <img alt="">
   <div class="viewer-bar">
     <button type="button" data-act="prev">Previous</button>
@@ -287,7 +316,7 @@ def project_page(i, p):
 def cv_page():
     def block(items):
         return "".join(f"""<li><div class="cv-row"><h3>{e(x['role'])}</h3><p class="cv-years">{e(x['years'])}</p></div><p class="cv-org">{e(x['org'])}</p><p>{e(x['text'])}</p></li>""" for x in items)
-    projects = "".join(f"""<li><div class="cv-row"><h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3><p class="cv-years">{e(dict(p['facts']).get('Location', ''))}</p></div><p>{e(p['summary'])}</p></li>""" for p in PROJECTS)
+    projects = "".join(f"""<li><div class="cv-row"><h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3><p class="cv-years">{e(dict(p['facts']).get('Location', 'GitHub'))}</p></div><p>{e(p['summary'])}</p></li>""" for p in PROJECTS)
     tk = "".join(f"<div><dt>{e(k)}</dt><dd>{e(v)}</dd></div>" for k, v in TOOLKIT)
     page = head("CV | Ray Shi", f"Curriculum vitae of Ray Shi, {SITE['role']}.", "/cv/", "/assets/og/home.jpg")
     page += f"""
