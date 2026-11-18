@@ -8,6 +8,9 @@ SITE = {
     "email": "ray.ecodesigner@gmail.com",
     "linkedin": "https://www.linkedin.com/in/ray-shi-b633302a8",
     "github": "https://github.com/Ray-Shi-Dev",
+    "status": "Research Assistant, NCKU NetDB Lab",
+    "hero_sub": "Data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools.",
+    "affiliations": ["Arup", "National Cheng Kung University", "The University of Manchester", "Outlier"],
     "intro": "I'm a data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools, grounded in two years of building-physics work at Arup and a research background in spatial statistics.",
     "now": [
         ("Now", "Research Assistant, Computer Science, NCKU NetDB Lab"),
