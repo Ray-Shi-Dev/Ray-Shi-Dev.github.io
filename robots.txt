@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ray-shi-dev.github.io/sitemap.xml
