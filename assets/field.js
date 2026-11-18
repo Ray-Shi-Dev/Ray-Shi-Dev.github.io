@@ -105,6 +105,10 @@
   function stop() { running = false; }
 
   resize(); draw();
+  const heroEl = canvas.closest('.hero');
+  const ready = () => requestAnimationFrame(() => heroEl.classList.add('is-ready'));
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(ready);
+  setTimeout(ready, 900);
   window.addEventListener('resize', () => { resize(); draw(); });
   const hero = canvas.parentElement;
   hero.addEventListener('pointermove', ev => {
