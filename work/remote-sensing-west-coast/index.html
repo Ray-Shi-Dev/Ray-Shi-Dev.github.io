@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remote sensing for environmental monitoring | Ray Shi</title>
+<meta name="description" content="Open satellite data and Google Earth Engine used to track air and water quality along an industrial coastline.">
+<link rel="canonical" href="https://ray-shi-dev.github.io/work/remote-sensing-west-coast/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Remote sensing for environmental monitoring | Ray Shi">
+<meta property="og:description" content="Open satellite data and Google Earth Engine used to track air and water quality along an industrial coastline.">
+<meta property="og:url" content="https://ray-shi-dev.github.io/work/remote-sensing-west-coast/">
+<meta property="og:image" content="https://ray-shi-dev.github.io/assets/img/remote-sensing-west-coast/cover-sm.webp">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#EDF0EE">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body class="project">
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <a class="nav-name" href="/">Ray Shi</a>
+  <nav aria-label="Primary"><a href="/#work">Work</a><a href="/#code">Code</a><a href="/#about">About</a><a href="/#contact">Contact</a></nav>
+</header>
+<main id="main">
+<article>
+  <header class="p-head">
+    <p class="crumb"><a href="/#work">Selected work</a> / Simulation and data</p>
+    <h1 class="p-title">Remote sensing for environmental monitoring</h1>
+    <p class="p-sum">Open satellite data and Google Earth Engine used to track air and water quality along an industrial coastline.</p>
+    <dl class="facts"><div><dt>Location</dt><dd>Taiwan&#x27;s west coast</dd></div><div><dt>Area</dt><dd>400,000 ha</dd></div><div><dt>Period studied</dt><dd>2020 to 2023</dd></div><div><dt>Tools</dt><dd>Google Earth Engine, Sentinel-2, Sentinel-5P</dd></div></dl>
+  </header>
+  <figure class="p-cover"><img src="/assets/img/remote-sensing-west-coast/cover.webp" alt="Satellite map of 2021 nitrogen dioxide concentration over the coast of southwest Taiwan, highest near the industrial shoreline" decoding="async"></figure>
+  <div class="p-body">
+    <aside class="p-high"><h2>Highlights</h2><ul><li>No field survey required</li><li>One script reruns for any date range</li><li>NO₂ from Sentinel-5P, river turbidity from Sentinel-2</li></ul></aside>
+    <div class="prose"><p>I grew up on Taiwan&#x27;s west coast, where rivers and farmland sit beside dense industry. Air and water quality are long-running concerns there, yet monitoring still relies on field surveys and consultant simulations that are slow and expensive. This independent project tests a cheaper, repeatable alternative built on open satellite data.</p><h3>Air</h3><p>Nitrogen dioxide is a key marker of industrial and traffic emissions. I filtered Copernicus Sentinel-5P NO₂ column density in Google Earth Engine, averaged it by year and clipped it to the study area to compare 2020 through 2023.</p><h3>Water</h3><p>Turbidity stands in for river health. From Sentinel-2 imagery I built a water mask with NDWI (green and near-infrared bands, thresholded, converted to polygons and dissolved), then applied NDTI (red and green bands) to water pixels only. The date range is a parameter, so the same script produces any year for comparison.</p><figure class="code"><figcaption>Google Earth Engine, water mask and turbidity</figcaption><pre><code>// Sentinel-2, cloud-filtered median for the study area
+var s2 = ee.ImageCollection(&quot;COPERNICUS/S2_SR_HARMONIZED&quot;)
+  .select([&#x27;B3&#x27;, &#x27;B4&#x27;, &#x27;B8&#x27;])
+  .filterDate(&#x27;2023-01-01&#x27;, &#x27;2023-12-31&#x27;)
+  .filterBounds(AOI)
+  .filter(ee.Filter.lt(&#x27;CLOUDY_PIXEL_PERCENTAGE&#x27;, 10))
+  .median()
+  .multiply(0.0001);
+
+// Water mask from NDWI, turbidity from NDTI
+var ndwi = s2.normalizedDifference([&#x27;B3&#x27;, &#x27;B8&#x27;]).rename(&#x27;NDWI&#x27;);
+var water = ndwi.gt(0).rename(&#x27;watermask&#x27;);
+var ndti = s2.normalizedDifference([&#x27;B4&#x27;, &#x27;B3&#x27;]).rename(&#x27;NDTI&#x27;);
+var turbidity = ndti.updateMask(water);</code></pre></figure></div>
+  </div>
+  <section class="p-sheets" aria-labelledby="sheets-title">
+    <h2 id="sheets-title">Portfolio sheets</h2>
+    <p class="section-lede">The original presentation boards. Select one to view it full size.</p>
+    <ul class="sheets"><li><button class="sheet" type="button" data-full="/assets/img/remote-sensing-west-coast/sheet-01.webp" aria-label="Open sheet 1 of 4"><img src="/assets/img/remote-sensing-west-coast/sheet-01-sm.webp" alt="Portfolio sheet 1 of 4 for Remote sensing for environmental monitoring" loading="lazy" decoding="async" width="900" height="650"></button></li><li><button class="sheet" type="button" data-full="/assets/img/remote-sensing-west-coast/sheet-02.webp" aria-label="Open sheet 2 of 4"><img src="/assets/img/remote-sensing-west-coast/sheet-02-sm.webp" alt="Portfolio sheet 2 of 4 for Remote sensing for environmental monitoring" loading="lazy" decoding="async" width="900" height="650"></button></li><li><button class="sheet" type="button" data-full="/assets/img/remote-sensing-west-coast/sheet-03.webp" aria-label="Open sheet 3 of 4"><img src="/assets/img/remote-sensing-west-coast/sheet-03-sm.webp" alt="Portfolio sheet 3 of 4 for Remote sensing for environmental monitoring" loading="lazy" decoding="async" width="900" height="650"></button></li><li><button class="sheet" type="button" data-full="/assets/img/remote-sensing-west-coast/sheet-04.webp" aria-label="Open sheet 4 of 4"><img src="/assets/img/remote-sensing-west-coast/sheet-04-sm.webp" alt="Portfolio sheet 4 of 4 for Remote sensing for environmental monitoring" loading="lazy" decoding="async" width="900" height="650"></button></li></ul>
+  </section>
+  <nav class="p-next" aria-label="Next project"><a href="/work/sme-spatial-analysis-taipei/"><span>Next project</span><strong>Where small businesses cluster in Taipei</strong></a></nav>
+</article>
+</main>
+<dialog class="viewer" aria-label="Sheet viewer">
+  <img alt="">
+  <div class="viewer-bar">
+    <button type="button" data-act="prev">Previous</button>
+    <span class="viewer-count"></span>
+    <button type="button" data-act="next">Next</button>
+    <button type="button" data-act="close">Close</button>
+  </div>
+</dialog>
+<footer class="foot" id="contact">
+  <div class="foot-inner">
+    <h2 class="foot-title">Let's talk</h2>
+    <p class="foot-lede">Open to conversations about building performance, spatial data and urban projects.</p>
+    <ul class="foot-links">
+      <li><a href="mailto:ray.ecodesigner@gmail.com">ray.ecodesigner@gmail.com</a></li>
+      <li><a href="https://www.linkedin.com/in/ray-shi-b633302a8" rel="me">LinkedIn</a></li>
+      <li><a href="https://github.com/Ray-Shi-Dev" rel="me">GitHub</a></li>
+    </ul>
+    <p class="foot-small">© 2026 Ray Shi</p>
+  </div>
+</footer>
+<script src="/assets/viewer.js" defer></script>
+</body></html>
