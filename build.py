@@ -1,10 +1,10 @@
 """Static site generator. Run: python3 build.py  -> writes HTML into this folder."""
-import json, html
+import json, html, re
 from pathlib import Path
 from PIL import Image
 from content import (SITE, GROUPS, PROJECTS, VENTURES, ABOUT, EXPERIENCE,
                      EDUCATION, TOOLKIT, CREDENTIALS, SERVICE)
-from viz import VIZ, bench
+from viz import VIZ, bench, DEFS
 from cases import CASES
 from pygments import highlight
 from pygments.lexers import PythonLexer
@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION = "9"
+VERSION = "10"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -55,11 +55,12 @@ def head(title, desc, path, og, extra=""):
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0C0A12">
+<meta name="theme-color" content="#070709">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-<link rel="preload" href="/assets/fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/site.css?v={VERSION}">
 <script>document.documentElement.classList.add('js');setTimeout(function(){{var h=document.querySelector('.hero');h&&h.classList.add('is-ready')}},3000)</script>
 {extra}</head>"""
@@ -71,7 +72,8 @@ NAV = [("Work", "/#work"), ("Experience", "/#experience"), ("About", "/#about"),
 def nav(current="", clear=False):
     links = "".join(
         f'<a href="{h}"{" aria-current=\"page\"" if t == current else ""}>{t}</a>' for t, h in NAV)
-    return f"""<svg class="svg-defs" aria-hidden="true" focusable="false"><defs><linearGradient id="g-heat" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8E2A85"/><stop offset=".38" stop-color="#E5487F"/><stop offset=".72" stop-color="#F57A3D"/><stop offset="1" stop-color="#FDB54A"/></linearGradient></defs></svg>
+    return f"""{DEFS}
+<div class="guides" aria-hidden="true"></div>
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav{' nav--clear' if clear else ''}">
   <div class="container nav-inner">
@@ -84,6 +86,7 @@ def nav(current="", clear=False):
 def contact_block():
     return f"""<section class="container contact" id="contact" aria-labelledby="contact-title">
   <div class="contact-card">
+    <span class="idx">Contact</span>
     <h2 id="contact-title">Let's work on something with data.</h2>
     <p>Open to conversations about data science, machine learning and software engineering roles.</p>
     <div class="hero-cta">
@@ -98,7 +101,7 @@ def contact_block():
 def footer():
     return f"""<footer class="foot">
   <div class="container foot-inner">
-    <span>© {YEAR} Ray Shi</span>
+    <span>© {YEAR} Ray Shi, Tainan</span>
     <nav aria-label="Footer"><a href="/#work">Work</a><a href="/cv/">CV</a><a href="{SITE['github']}">GitHub</a><a href="{SITE['linkedin']}">LinkedIn</a><a href="mailto:{SITE['email']}">Email</a></nav>
   </div>
 </footer>"""
@@ -121,6 +124,21 @@ def facts_block(facts):
     return f'<dl class="facts">{rows}</dl>'
 
 
+def stack(text, n=8):
+    parts = [x.strip() for x in text.split(",") if x.strip()][:n]
+    return f'<p class="stack">{"".join(f"<span>{e(x)}</span>" for x in parts)}</p>'
+
+
+def count_attr(val):
+    """data attributes for the count-up animation, e.g. '72%' or '1.4 GB'."""
+    m = re.match(r"^([^0-9]*)([0-9]+(?:\.[0-9]+)?)(.*)$", val)
+    if not m:
+        return ""
+    pre, num, suf = m.groups()
+    dec = len(num.split(".")[1]) if "." in num else 0
+    return f' data-count="{num}" data-dec="{dec}" data-pre="{e(pre)}" data-suf="{e(suf)}"'
+
+
 _FMT = HtmlFormatter(nowrap=True, classprefix="t-")
 
 
@@ -130,7 +148,7 @@ def hl_lines(code):
 
 def code_window(file, inner, label=""):
     return f"""<figure class="code-win">
-  <figcaption class="code-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="code-file">{e(file)}</span><span class="code-label">{e(label)}</span></figcaption>
+  <figcaption class="code-bar"><span class="code-file">{e(file)}</span><span class="code-label">{e(label)}</span></figcaption>
   <pre tabindex="0"><code>{inner}</code></pre>
 </figure>"""
 
@@ -141,24 +159,27 @@ def code_block(file, code):
     return code_window(file, inner, "Python")
 
 
-def diff_block(file, before, after):
+def _diff_inner(before, after):
     b, a = hl_lines(before), hl_lines(after)
     inner = "".join(f'<span class="ln del"><span class="ln-n" aria-hidden="true">−</span>{l or " "}</span>' for l in b)
     inner += "".join(f'<span class="ln add"><span class="ln-n" aria-hidden="true">+</span>{l or " "}</span>' for l in a)
-    return code_window(file, inner, f"−{len(b)} +{len(a)}")
+    return inner, len(b), len(a)
+
+
+def diff_block(file, before, after):
+    inner, nb, na = _diff_inner(before, after)
+    return code_window(file, inner, f"−{nb} +{na}")
 
 
 def diff_switch(steps):
     tabs, panels = "", ""
     for i, st in enumerate(steps):
-        b, a = hl_lines(st["before"]), hl_lines(st["after"])
-        inner = "".join(f'<span class="ln del"><span class="ln-n" aria-hidden="true">−</span>{l or " "}</span>' for l in b)
-        inner += "".join(f'<span class="ln add"><span class="ln-n" aria-hidden="true">+</span>{l or " "}</span>' for l in a)
+        inner, nb, na = _diff_inner(st["before"], st["after"])
         sel = "true" if i == 0 else "false"
         tabs += f'<button class="diff-tab" type="button" role="tab" id="dt-{i}" aria-selected="{sel}" aria-controls="dp-{i}" tabindex="{0 if i == 0 else -1}">{e(st["file"])}</button>'
         panels += f'<div class="diff-panel" role="tabpanel" id="dp-{i}" aria-labelledby="dt-{i}"{" hidden" if i else ""}><pre tabindex="0"><code>{inner}</code></pre></div>'
     return f"""<figure class="code-win diff-switch">
-  <figcaption class="code-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="diff-tabs" role="tablist" aria-label="Before and after">{tabs}</span><span class="code-label">before / after</span></figcaption>
+  <figcaption class="code-bar"><span class="diff-tabs" role="tablist" aria-label="Before and after">{tabs}</span><span class="code-label">diff, before and after</span></figcaption>
   {panels}
 </figure>"""
 
@@ -167,32 +188,31 @@ def featured_card(p):
     f = dict(p["facts"])
     c = CASES[p["slug"]]
     diff_steps = [x for x in c["approach"] if x.get("before")]
-    metrics = "".join(f'<div class="fm"><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>' for val, lab in c["metrics"])
+    metrics = "".join(f'<div><dt>{e(lab)}</dt><dd{count_attr(val)}>{e(val)}</dd></div>' for val, lab in c["metrics"])
     return f"""<article class="feature spot">
-  <span class="heat-top" aria-hidden="true"></span>
   <div class="feature-text">
-    <p class="bcard-top"><span class="gh">{ICON_CODE}{e(p['repo'])}</span><span>Featured case study</span></p>
+    <p class="feature-top"><span class="idx"><b>01</b> / Featured case study</span><span class="idx">{e(p['repo'])}</span></p>
     <h3><a class="stretch" href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
     <p class="sum">{e(p['summary'])}</p>
-    <dl class="feature-metrics">{metrics}</dl>
-    <ul class="chips" aria-label="Stack">{chips(f['Stack'], 6)}</ul>
+    {stack(f['Stack'], 7)}
     <p class="feature-more" aria-hidden="true">Read the case study {ICON_OUT}</p>
   </div>
   <div class="feature-vis">
     {diff_switch(diff_steps)}
     <div class="viz-wrap">{bench(compact=True)}</div>
   </div>
+  <dl class="feature-metrics">{metrics}</dl>
 </article>"""
 
 
-def bento_card(p):
+def bento_card(p, n):
     f = dict(p["facts"])
     return f"""<li class="bcard spot"><a href="/work/{p['slug']}/">
-  <div class="bcard-top"><span class="gh">{ICON_CODE}{e(p['repo'])}</span><span>{e(f['Type'].split(',')[0])}</span></div>
+  <div class="bcard-top"><span>{n:02d}</span><span>{e(p['repo'])}</span></div>
   <h3>{e(p['title'])}</h3>
-  <p class="sum">{e(p['summary'])}</p>
+  <p class="kind">{e(f['Type'])}</p>
   <div class="viz-wrap">{VIZ[p['slug']]()}</div>
-  <ul class="chips" aria-label="Stack">{chips(f['Stack'], 5)}</ul>
+  <div class="bcard-more"><p>{e(p['summary'])}</p>{stack(f['Stack'], 5)}<span class="go">Read the case study {ICON_OUT}</span></div>
 </a></li>"""
 
 
@@ -201,7 +221,7 @@ def image_card(p):
     return f"""<li class="icard"><a href="/work/{p['slug']}/">
   <figure>{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 860px) 100vw, 50vw")}</figure>
   <div class="body"><p class="meta">{e(loc)}</p><h3>{e(p['title'])}</h3><p class="sum">{e(p['summary'])}</p>
-  <ul class="chips" aria-label="Methods">{chips(p['tags'])}</ul></div>
+  {stack(p['tags'])}</div>
 </a></li>"""
 
 
@@ -243,6 +263,22 @@ def jsonld():
     return f'<script type="application/ld+json">{json.dumps(data)}</script>\n'
 
 
+MODES = [("01", "Building Physics"), ("02", "Spatial Terrain"), ("03", "Neural Graph")]
+
+
+def sec_head(n, label, title_id, title, lede="", link=""):
+    return f"""<header class="sec-head">
+    <p class="idx"><b>{n}</b> / {e(label)}</p>
+    <h2 id="{title_id}" class="sec-title">{e(title)}</h2>
+    {f'<p class="sec-lede">{e(lede)}</p>' if lede else ''}
+    {link}
+  </header>"""
+
+
+def sub_head(n, title, lede, hid=""):
+    return f"""<header class="sub-head"{f' id="{hid}"' if hid else ''}><p class="idx">{n}</p><h3 class="sub-title">{e(title)}</h3><p>{e(lede)}</p></header>"""
+
+
 def home():
     soft = [p for p in PROJECTS if p["group"] == "software"]
     sim = [p for p in PROJECTS if p["group"] == "simulation"]
@@ -255,9 +291,10 @@ def home():
     else:
         ventures = '<p class="ventures-empty">Products I\'m building on my own will be listed here as they launch.</p>'
 
-    aff = "".join(f"<li>{e(a)}</li>" for a in SITE["affiliations"])
+    cred = "".join(f'<li><span class="org">{e(a)}</span><span class="what">{e(b)}</span></li>' for a, b in SITE["affiliations"])
+    modes = "".join(f'<button class="morph-tab" type="button" aria-pressed="{"true" if i == 0 else "false"}"><span class="idx">{n}</span><span class="lab">{e(t)}</span></button>' for i, (n, t) in enumerate(MODES))
     bio = "".join(f"<p>{e(x)}</p>" for x in ABOUT["bio"])
-    toolkit = "".join(f"""<li class="tk"><h4>{e(k)}</h4><ul class="chips">{chips(v, 20)}</ul></li>""" for k, v in TOOLKIT)
+    toolkit = "".join(f"""<li class="tk"><h4>{e(k)}</h4>{stack(v, 20)}</li>""" for k, v in TOOLKIT)
 
     page = head("Ray Shi: data science and computational engineering", SITE["description"], "/", "/assets/og/home.jpg", jsonld())
     page += f"""
@@ -267,7 +304,7 @@ def home():
 <section class="hero" aria-label="Introduction">
   <canvas class="gl" aria-hidden="true"></canvas>
   <div class="container hero-inner">
-    <p class="status reveal"><span class="dot" aria-hidden="true"></span>{e(SITE['status'])}</p>
+    <p class="status reveal">{e(SITE['status'])}</p>
     <h1 class="hero-title reveal">Ray Shi</h1>
     <p class="hero-sub reveal">{e(SITE['hero_sub'])}</p>
     <div class="hero-cta reveal">
@@ -277,53 +314,33 @@ def home():
     </div>
   </div>
   <div class="container hero-foot">
-    <div><p class="aff-label">Experience and education</p><ul class="aff">{aff}</ul></div>
-    <div class="morph">
-      <div class="morph-tabs" role="group" aria-label="Point cloud form">
-        <button class="morph-tab" type="button" aria-pressed="true">Buildings</button>
-        <button class="morph-tab" type="button" aria-pressed="false">Spatial data</button>
-        <button class="morph-tab" type="button" aria-pressed="false">Machine learning</button>
-      </div>
-      <p class="morph-cap" aria-live="polite">Energy, daylight and airflow models for buildings</p>
-      <p class="readout" aria-hidden="true"><span class="readout-live">webgl point cloud</span></p>
-    </div>
+    <div class="modes"><div class="mode-list" role="group" aria-label="3D scene">{modes}</div></div>
+    <ul class="cred" aria-label="Experience and education">{cred}</ul>
   </div>
 </section>
 
 <section class="section container" id="work" aria-labelledby="work-title">
-  <header class="sec-head">
-    <h2 id="work-title" class="sec-title">{e(g['software'][0])}</h2>
-    <p class="sec-lede">{e(g['software'][1])}</p>
-    <a class="btn sec-link" href="{SITE['github']}">All repositories {ICON_OUT}</a>
-  </header>
+  {sec_head("01", "Work", "work-title", g['software'][0], g['software'][1], f'<a class="btn sec-link" href="{SITE["github"]}">All repositories {ICON_OUT}</a>')}
   {featured_card(soft[0])}
-  <ul class="bento">{''.join(bento_card(p) for p in soft[1:])}</ul>
+  <ul class="bento">{''.join(bento_card(p, n) for n, p in enumerate(soft[1:], 2))}</ul>
 
-  <header class="sub-head"><h3 class="sub-title">{e(g['simulation'][0])}</h3><p>{e(g['simulation'][1])}</p></header>
+  {sub_head("01.2", g['simulation'][0], g['simulation'][1])}
   <ul class="grid2">{''.join(image_card(p) for p in sim)}</ul>
 
-  <header class="sub-head"><h3 class="sub-title">{e(g['design'][0])}</h3><p>{e(g['design'][1])}</p></header>
+  {sub_head("01.3", g['design'][0], g['design'][1])}
   <ul class="grid3">{''.join(mini_card(p) for p in des)}</ul>
 </section>
 
 <section class="section container" id="experience" aria-labelledby="exp-title">
-  <div class="xp">
-    <div class="xp-side">
-      <h2 id="exp-title" class="sec-title">Experience</h2>
-      <p class="sec-lede">From building physics and spatial statistics to computer-science research.</p>
-      <a class="btn" href="/cv/">Full CV</a>
-    </div>
-    <div class="xp-main">
-      <div class="xp-group"><h3>Work</h3><ol>{timeline(EXPERIENCE, now_first=True)}</ol></div>
-      <div class="xp-group"><h3>Education</h3><ol>{timeline(EDUCATION)}</ol></div>
-    </div>
-  </div>
-  <header class="sub-head"><h3 class="sub-title">Toolkit</h3><p>Languages, libraries and tools I use in practice.</p></header>
+  {sec_head("02", "Experience", "exp-title", "From building physics to computer science.", "", '<a class="btn sec-link" href="/cv/">Full CV</a>')}
+  <div class="xp-group"><h3>Work</h3><ol>{timeline(EXPERIENCE, now_first=True)}</ol></div>
+  <div class="xp-group"><h3>Education</h3><ol>{timeline(EDUCATION)}</ol></div>
+  {sub_head("02.3", "Toolkit", "Languages, libraries and tools I use in practice.")}
   <ul class="toolkit">{toolkit}</ul>
 </section>
 
 <section class="section container" id="about" aria-labelledby="about-title">
-  <header class="sec-head"><h2 id="about-title" class="sec-title">About</h2></header>
+  {sec_head("03", "About", "about-title", "Trained to design. Now I write the code.")}
   <div class="about">
     <figure class="portrait-card"><img src="/assets/img/ray-shi-cut.webp" alt="Portrait of Ray Shi" width="820" height="820" loading="lazy" decoding="async"><figcaption>Tainan, Taiwan</figcaption></figure>
     <div class="about-body">{bio}</div>
@@ -332,7 +349,7 @@ def home():
       <div><h3>Service</h3><ul class="pairs">{pairs(SERVICE)}</ul></div>
     </div>
   </div>
-  <header class="sub-head" id="ventures"><h3 class="sub-title">Ventures</h3><p>Independent products.</p></header>
+  {sub_head("03.2", "Ventures", "Independent products.", "ventures")}
   {ventures}
 </section>
 </main>
@@ -395,7 +412,7 @@ def project_page(i, p):
         actions = ""
     if software:
         c = CASES[slug]
-        metrics_band = '<dl class="metrics-band">' + "".join(f'<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>' for val, lab in c["metrics"]) + "</dl>"
+        metrics_band = '<dl class="metrics-band">' + "".join(f'<div><dt>{e(lab)}</dt><dd{count_attr(val)}>{e(val)}</dd></div>' for val, lab in c["metrics"]) + "</dl>"
         steps = ""
         for n, st in enumerate(c["approach"], 1):
             code = ""

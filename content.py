@@ -10,7 +10,12 @@ SITE = {
     "github": "https://github.com/Ray-Shi-Dev",
     "status": "Research Assistant, NCKU NetDB Lab",
     "hero_sub": "Data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools.",
-    "affiliations": ["Arup", "National Cheng Kung University", "The University of Manchester", "Outlier"],
+    "affiliations": [
+        ("Arup", "Computational energy, 2024–26"),
+        ("NCKU", "CS research assistant, 2026–"),
+        ("University of Manchester", "MSc Urban Design, 2023"),
+        ("Outlier", "LLM training, RLHF, 2024–25"),
+    ],
     "intro": "I'm a data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools, grounded in two years of building-physics work at Arup and a research background in spatial statistics.",
     "now": [
         ("Now", "Research Assistant, Computer Science, NCKU NetDB Lab"),

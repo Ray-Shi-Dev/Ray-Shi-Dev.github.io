@@ -10,7 +10,7 @@
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // Palette: low ground to high peaks.
-  const RAMP = [[40, 64, 130], [62, 102, 196], [110, 150, 240], [150, 186, 255], [206, 225, 255], [240, 246, 255]];
+  const RAMP = [[70, 72, 78], [100, 103, 110], [138, 143, 152], [180, 183, 189], [215, 216, 212], [244, 244, 240]];
   const HB = RAMP.length, DB = 5;
 
   // --- value noise ---------------------------------------------------------
@@ -91,7 +91,7 @@
     }
     ctx.lineWidth = 0.6;
     for (const [pts, a] of lines) {
-      ctx.strokeStyle = `rgba(120,160,255,${0.10 * a})`;
+      ctx.strokeStyle = `rgba(244,244,240,${0.08 * a})`;
       ctx.beginPath(); ctx.moveTo(pts[0], pts[1]);
       for (let k = 2; k < pts.length; k += 2) ctx.lineTo(pts[k], pts[k + 1]);
       ctx.stroke();
