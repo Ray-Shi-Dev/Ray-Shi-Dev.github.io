@@ -59,3 +59,26 @@
     });
   });
 })();
+
+// Metrics count up once when they scroll into view.
+(() => {
+  const els = [...document.querySelectorAll('[data-count]')];
+  if (!els.length) return;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fmt = (el, v) => `${el.dataset.pre || ''}${v.toFixed(+el.dataset.dec || 0)}${el.dataset.suf || ''}`;
+  const run = el => {
+    const target = parseFloat(el.dataset.count), t0 = performance.now(), dur = 1400;
+    const tick = now => {
+      const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 4);
+      el.textContent = fmt(el, target * e);
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  if (reduce || !('IntersectionObserver' in window)) return;
+  els.forEach(el => { el.textContent = fmt(el, 0); });
+  const io = new IntersectionObserver(entries => entries.forEach(en => {
+    if (en.isIntersecting) { run(en.target); io.unobserve(en.target); }
+  }), { threshold: 0.6 });
+  els.forEach(el => io.observe(el));
+})();
