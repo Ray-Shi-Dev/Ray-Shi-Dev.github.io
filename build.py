@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION = "10"
+VERSION = "11"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -77,7 +77,7 @@ def nav(current="", clear=False):
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav{' nav--clear' if clear else ''}">
   <div class="container nav-inner">
-    <a class="brand" href="/" aria-label="Ray Shi, home"><span class="brand-mark" aria-hidden="true"></span>Ray Shi</a>
+    {'' if clear else '<a class="nav-home" href="/">Index</a>'}
     <nav class="nav-links" aria-label="Primary">{links}<a class="nav-cta" href="mailto:{SITE['email']}">Contact</a></nav>
   </div>
 </header>"""
@@ -291,7 +291,7 @@ def home():
     else:
         ventures = '<p class="ventures-empty">Products I\'m building on my own will be listed here as they launch.</p>'
 
-    cred = "".join(f'<li><span class="org">{e(a)}</span><span class="what">{e(b)}</span></li>' for a, b in SITE["affiliations"])
+    cred = "".join(f'<li{" class=\"now\"" if k == 0 else ""}><span class="org">{e(a)}</span><span class="what">{e(b)}</span><span class="yrs">{e(c)}</span></li>' for k, (a, b, c) in enumerate(SITE["affiliations"]))
     modes = "".join(f'<button class="morph-tab" type="button" aria-pressed="{"true" if i == 0 else "false"}"><span class="idx">{n}</span><span class="lab">{e(t)}</span></button>' for i, (n, t) in enumerate(MODES))
     bio = "".join(f"<p>{e(x)}</p>" for x in ABOUT["bio"])
     toolkit = "".join(f"""<li class="tk"><h4>{e(k)}</h4>{stack(v, 20)}</li>""" for k, v in TOOLKIT)
@@ -304,19 +304,25 @@ def home():
 <section class="hero" aria-label="Introduction">
   <canvas class="gl" aria-hidden="true"></canvas>
   <div class="container hero-inner">
-    <p class="status reveal">{e(SITE['status'])}</p>
-    <h1 class="hero-title reveal">Ray Shi</h1>
-    <p class="hero-sub reveal">{e(SITE['hero_sub'])}</p>
-    <div class="hero-cta reveal">
-      <a class="btn btn-primary" href="#work">View work</a>
-      <a class="btn" href="{SITE['github']}">GitHub {ICON_OUT}</a>
-      <a class="btn" href="/cv/">CV</a>
+    <div class="hero-main">
+      <h1 class="hero-title reveal">Ray Shi</h1>
+      <div class="hero-row reveal">
+        <p class="hero-sub">{e(SITE['hero_sub'])}</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#work">View work</a>
+          <a class="btn" href="{SITE['github']}">GitHub {ICON_OUT}</a>
+          <a class="btn" href="/cv/">CV</a>
+        </div>
+      </div>
+    </div>
+    <div class="modes reveal">
+      <div class="mode-list" role="group" aria-label="3D scene">{modes}</div>
+      <p class="coord">22.9997° N, 120.2170° E</p>
     </div>
   </div>
-  <div class="container hero-foot">
-    <div class="modes"><div class="mode-list" role="group" aria-label="3D scene">{modes}</div></div>
-    <ul class="cred" aria-label="Experience and education">{cred}</ul>
-  </div>
+</section>
+<section class="container cred-band" aria-label="Experience and education">
+  <ul class="cred">{cred}</ul>
 </section>
 
 <section class="section container" id="work" aria-labelledby="work-title">
