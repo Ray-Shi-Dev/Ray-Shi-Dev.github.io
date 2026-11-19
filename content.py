@@ -11,10 +11,10 @@ SITE = {
     "status": "Research Assistant, NCKU NetDB Lab",
     "hero_sub": "Data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools.",
     "affiliations": [
-        ("Arup", "Computational energy, 2024–26"),
-        ("NCKU", "CS research assistant, 2026–"),
-        ("University of Manchester", "MSc Urban Design, 2023"),
-        ("Outlier", "LLM training, RLHF, 2024–25"),
+        ("NCKU", "Research assistant, computer science", "2026–"),
+        ("Arup", "Graduate consultant, computational energy", "2024–26"),
+        ("Outlier", "AI trainer, LLMs and RLHF", "2024–25"),
+        ("University of Manchester", "MSc Urban Design and Planning", "2023"),
     ],
     "intro": "I'm a data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools, grounded in two years of building-physics work at Arup and a research background in spatial statistics.",
     "now": [
