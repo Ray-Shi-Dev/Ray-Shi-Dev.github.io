@@ -102,6 +102,16 @@
   }
 
   const A = tower(), B = terrain(), C = network();
+  // colour value per particle and form: height for tower and terrain, depth through the network
+  const T = new Float32Array(N * 3);
+  const range = (arr, axis) => { let lo = 1e9, hi = -1e9; for (let i = 0; i < N; i++) { const v = arr[i * 3 + axis]; if (v < lo) lo = v; if (v > hi) hi = v; } return [lo, hi]; };
+  const [ty0, ty1] = range(A, 1), [gy0, gy1] = range(B, 1), [nx0, nx1] = range(C, 0);
+  for (let i = 0; i < N; i++) {
+    const ay = A[i * 3 + 1];
+    T[i * 3] = ay <= -0.999 ? 0.06 + rnd() * 0.08 : 0.12 + 0.88 * (ay - ty0) / (ty1 - ty0);
+    T[i * 3 + 1] = 0.05 + 0.95 * Math.pow((B[i * 3 + 1] - gy0) / (gy1 - gy0), 1.6);
+    T[i * 3 + 2] = Math.min(1, Math.max(0, 0.08 + 0.9 * (C[i * 3] - nx0) / (nx1 - nx0) + (rnd() - 0.5) * 0.08));
+  }
   const extra = new Float32Array(N * 4); // delay, tone, twinkle, warm flag
   const dir = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) {
@@ -112,10 +122,19 @@
 
   // --- GL program ----------------------------------------------------------------
   const VS = `
-    attribute vec3 aA, aB, aC, aDir; attribute vec4 aX;
-    uniform vec3 uFrom, uTo; uniform float uP, uTime, uYaw, uPitch, uAspect, uSize, uShiftX, uShiftY, uScale;
-    varying float vAlpha; varying vec3 vCol;
+    attribute vec3 aA, aB, aC, aDir, aT; attribute vec4 aX;
+    uniform vec3 uFrom, uTo; uniform float uP, uTime, uYaw, uPitch, uAspect, uSize, uShiftX, uShiftY, uScale, uHalo, uMouseS; uniform vec2 uMouse;
+    varying float vAlpha; varying vec3 vCol; varying float vHalo;
     vec3 pick(vec3 w){ return aA*w.x + aB*w.y + aC*w.z; }
+    vec3 heat(float t){
+      vec3 c0 = vec3(0.42,0.11,0.54), c1 = vec3(0.72,0.20,0.48), c2 = vec3(0.90,0.28,0.50),
+           c3 = vec3(0.96,0.48,0.24), c4 = vec3(0.99,0.71,0.29), c5 = vec3(0.99,0.94,0.66);
+      if (t < 0.25) return mix(c0, c1, t/0.25);
+      if (t < 0.45) return mix(c1, c2, (t-0.25)/0.2);
+      if (t < 0.65) return mix(c2, c3, (t-0.45)/0.2);
+      if (t < 0.85) return mix(c3, c4, (t-0.65)/0.2);
+      return mix(c4, c5, (t-0.85)/0.15);
+    }
     void main(){
       float lp = clamp((uP - aX.x*0.45)/0.55, 0.0, 1.0);
       lp = lp*lp*(3.0-2.0*lp);
@@ -129,34 +148,40 @@
       q *= uScale;
       float dist = 4.6 - q.z;
       float f = 1.0 / tan(0.36);
-      gl_Position = vec4((q.x*f/uAspect)/dist + uShiftX, (q.y*f)/dist + uShiftY, 0.0, 1.0);
-      gl_PointSize = uSize * (2.4 / dist);
+      vec2 ndc = vec2((q.x*f/uAspect)/dist + uShiftX, (q.y*f)/dist + uShiftY);
+      vec2 dm = ndc - uMouse; dm.x *= uAspect;
+      float k = uMouseS * exp(-dot(dm, dm) / 0.03);
+      vec2 push = normalize(dm + 1e-5) * 0.07 * k; push.x /= uAspect;
+      ndc += push;
+      gl_Position = vec4(ndc, 0.0, 1.0);
+      gl_PointSize = uSize * (2.4 / dist) * mix(1.0, 3.4, uHalo);
       float depth = clamp((dist - 3.2)/2.6, 0.0, 1.0);
       float tw = 0.8 + 0.2*sin(uTime*1.3 + aX.z);
-      vAlpha = (1.0 - depth*0.6) * tw * 0.55;
-      vec3 cool = mix(vec3(0.42,0.56,0.98), vec3(0.85,0.91,1.0), aX.y);
-      vec3 warm = vec3(0.98,0.70,0.45);
-      vCol = mix(cool, warm, aX.w);
+      vAlpha = (1.0 - depth*0.6) * tw * 0.55 * (1.0 + 1.4*k) * mix(1.0, 0.075, uHalo);
+      vHalo = uHalo;
+      float ct = mix(dot(aT, uFrom), dot(aT, uTo), lp);
+      vCol = mix(heat(ct), vec3(1.0, 0.97, 0.9), aX.w * 0.8);
     }`;
   const FS = `
-    precision mediump float; varying float vAlpha; varying vec3 vCol; uniform float uGain;
+    precision mediump float; varying float vAlpha; varying vec3 vCol; varying float vHalo; uniform float uGain;
     void main(){
       vec2 c = gl_PointCoord - 0.5; float r = length(c);
       float a = smoothstep(0.5, 0.05, r); float core = smoothstep(0.22, 0.0, r); a = a*0.55 + core*0.75;
+      if (vHalo > 0.5) a = smoothstep(0.5, 0.0, r) * smoothstep(0.5, 0.0, r);
       gl_FragColor = vec4(vCol * a * vAlpha * uGain, a * vAlpha * uGain);
     }`;
-  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.warn('shader', gl.getShaderInfoLog(s)); return s; };
   const prog = gl.createProgram();
   gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
   gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { canvas.remove(); return; }
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.warn('link', gl.getProgramInfoLog(prog)); canvas.remove(); return; }
   gl.useProgram(prog);
   const attr = (name, data, size) => {
     const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, name); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
   };
-  attr('aA', A, 3); attr('aB', B, 3); attr('aC', C, 3); attr('aDir', dir, 3); attr('aX', extra, 4);
-  const U = {}; ['uFrom', 'uTo', 'uP', 'uTime', 'uYaw', 'uPitch', 'uAspect', 'uSize', 'uShiftX', 'uShiftY', 'uScale', 'uGain'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
+  attr('aA', A, 3); attr('aB', B, 3); attr('aC', C, 3); attr('aDir', dir, 3); attr('aX', extra, 4); attr('aT', T, 3);
+  const U = {}; ['uFrom', 'uTo', 'uP', 'uTime', 'uYaw', 'uPitch', 'uAspect', 'uSize', 'uShiftX', 'uShiftY', 'uScale', 'uGain', 'uHalo', 'uMouse', 'uMouseS'].forEach(n => U[n] = gl.getUniformLocation(prog, n));
   gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
   const onehot = i => [i === 0 ? 1 : 0, i === 1 ? 1 : 0, i === 2 ? 1 : 0];
 
@@ -173,20 +198,23 @@
     gl.uniform1f(U.uShiftX, narrow ? 0.0 : 0.42);
     gl.uniform1f(U.uShiftY, narrow ? -0.3 : -0.02);
     gl.uniform1f(U.uScale, narrow ? 0.5 : Math.min(0.78, 0.5 * (w / h) / 1.6 + 0.26));
-    gl.uniform1f(U.uSize, (narrow ? 2.6 : 3.4) * dpr);
-    gl.uniform1f(U.uGain, narrow ? 0.95 : 1.15);
+    gl.uniform1f(U.uSize, (narrow ? 3.0 : 3.4) * dpr);
+    gl.uniform1f(U.uGain, narrow ? 1.5 : 1.2);
   }
 
   // --- timeline ------------------------------------------------------------------------
   const HOLD = 7.0, MORPH = 2.8;
   let from = 0, to = 0, p = 1, phase = 'hold', clock = 0, last = 0, t = 0;
+  let mx = 9, my = 9, ms = 0, msT = 0;
   let yaw = 0.6, yawT = 0, yawO = 0, pitch = 0.32, pitchT = 0.32, running = false, visible = true;
   const tabs = [...document.querySelectorAll('.morph-tab')];
-  const bar = document.querySelector('.morph-progress');
+  const cap = document.querySelector('.morph-cap');
+  const CAPS = ['Energy, daylight and airflow models for buildings', 'Satellite data, GIS and spatial statistics', 'Gradient-boosting ensembles and data pipelines'];
   const readout = document.querySelector('.readout-live');
   function setActive(i) {
     tabs.forEach((b, k) => b.setAttribute('aria-pressed', k === i ? 'true' : 'false'));
-    if (readout) readout.textContent = `webgl / ${N.toLocaleString('en-US')} particles / ${SHAPES[i].toLowerCase()}`;
+    if (readout) readout.textContent = `webgl / ${N.toLocaleString('en-US')} particles / colour = ${i === 2 ? 'layer depth' : 'height'}`;
+    if (cap) cap.textContent = CAPS[i];
   }
   function go(i) { if (i === to && phase === 'hold') return; from = (phase === 'morph' && p < 0.5) ? from : to; to = i; p = 0; phase = 'morph'; clock = 0; setActive(i); }
   tabs.forEach((b, i) => b.addEventListener('click', () => { go(i); if (reduce) { p = 1; phase = 'hold'; from = to; draw(); } }));
@@ -196,7 +224,9 @@
     gl.uniform3fv(U.uFrom, onehot(from)); gl.uniform3fv(U.uTo, onehot(to));
     gl.uniform1f(U.uP, p); gl.uniform1f(U.uTime, t);
     gl.uniform1f(U.uYaw, yaw + yawO); gl.uniform1f(U.uPitch, pitch);
-    gl.drawArrays(gl.POINTS, 0, N);
+    gl.uniform2f(U.uMouse, mx, my); gl.uniform1f(U.uMouseS, ms);
+    gl.uniform1f(U.uHalo, 1); gl.drawArrays(gl.POINTS, 0, N);   // soft bloom pass
+    gl.uniform1f(U.uHalo, 0); gl.drawArrays(gl.POINTS, 0, N);   // crisp points
   }
 
   function frame(now) {
@@ -207,8 +237,10 @@
     yawO += (yawT - yawO) * 0.03;           // pointer influence eases in
     if (phase === 'morph') { p = Math.min(1, clock / MORPH); if (p >= 1) { phase = 'hold'; clock = 0; from = to; } }
     else if (clock > HOLD) go((to + 1) % SHAPES.length);
-    if (bar) bar.style.transform = `scaleX(${phase === 'hold' ? Math.min(1, clock / HOLD) : 0})`;
+    const pv = phase === 'hold' ? Math.min(1, clock / HOLD) : 0;
+    tabs.forEach((b, k) => b.style.setProperty('--p', k === to ? pv.toFixed(3) : '0'));
     pitch += (pitchT - pitch) * 0.03;
+    ms += (msT - ms) * 0.06;
     draw();
     requestAnimationFrame(frame);
   }
@@ -229,9 +261,11 @@
     if (ev.pointerType !== 'mouse') return;
     const r = hero.getBoundingClientRect();
     yawT = ((ev.clientX - r.left) / r.width - 0.5) * 0.5;
+    const cr = canvas.getBoundingClientRect();
+    mx = ((ev.clientX - cr.left) / cr.width) * 2 - 1; my = 1 - ((ev.clientY - cr.top) / cr.height) * 2; msT = 1;
     pitchT = 0.32 + ((ev.clientY - r.top) / r.height - 0.5) * 0.25;
   });
-  hero.addEventListener('pointerleave', () => { yawT = 0; pitchT = 0.32; });
+  hero.addEventListener('pointerleave', () => { yawT = 0; pitchT = 0.32; msT = 0; });
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible ? startLoop() : stop(); }).observe(canvas);
   document.addEventListener('visibilitychange', () => (document.hidden ? stop() : startLoop()));
   startLoop();

@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION = "7"
+VERSION = "9"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -55,7 +55,7 @@ def head(title, desc, path, og, extra=""):
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0D1218">
+<meta name="theme-color" content="#0C0A12">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -71,7 +71,8 @@ NAV = [("Work", "/#work"), ("Experience", "/#experience"), ("About", "/#about"),
 def nav(current="", clear=False):
     links = "".join(
         f'<a href="{h}"{" aria-current=\"page\"" if t == current else ""}>{t}</a>' for t, h in NAV)
-    return f"""<a class="skip" href="#main">Skip to content</a>
+    return f"""<svg class="svg-defs" aria-hidden="true" focusable="false"><defs><linearGradient id="g-heat" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8E2A85"/><stop offset=".38" stop-color="#E5487F"/><stop offset=".72" stop-color="#F57A3D"/><stop offset="1" stop-color="#FDB54A"/></linearGradient></defs></svg>
+<a class="skip" href="#main">Skip to content</a>
 <header class="nav{' nav--clear' if clear else ''}">
   <div class="container nav-inner">
     <a class="brand" href="/" aria-label="Ray Shi, home"><span class="brand-mark" aria-hidden="true"></span>Ray Shi</a>
@@ -147,12 +148,28 @@ def diff_block(file, before, after):
     return code_window(file, inner, f"−{len(b)} +{len(a)}")
 
 
+def diff_switch(steps):
+    tabs, panels = "", ""
+    for i, st in enumerate(steps):
+        b, a = hl_lines(st["before"]), hl_lines(st["after"])
+        inner = "".join(f'<span class="ln del"><span class="ln-n" aria-hidden="true">−</span>{l or " "}</span>' for l in b)
+        inner += "".join(f'<span class="ln add"><span class="ln-n" aria-hidden="true">+</span>{l or " "}</span>' for l in a)
+        sel = "true" if i == 0 else "false"
+        tabs += f'<button class="diff-tab" type="button" role="tab" id="dt-{i}" aria-selected="{sel}" aria-controls="dp-{i}" tabindex="{0 if i == 0 else -1}">{e(st["file"])}</button>'
+        panels += f'<div class="diff-panel" role="tabpanel" id="dp-{i}" aria-labelledby="dt-{i}"{" hidden" if i else ""}><pre tabindex="0"><code>{inner}</code></pre></div>'
+    return f"""<figure class="code-win diff-switch">
+  <figcaption class="code-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="diff-tabs" role="tablist" aria-label="Before and after">{tabs}</span><span class="code-label">before / after</span></figcaption>
+  {panels}
+</figure>"""
+
+
 def featured_card(p):
     f = dict(p["facts"])
     c = CASES[p["slug"]]
-    step = next(x for x in c["approach"] if x.get("before"))
+    diff_steps = [x for x in c["approach"] if x.get("before")]
     metrics = "".join(f'<div class="fm"><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>' for val, lab in c["metrics"])
     return f"""<article class="feature spot">
+  <span class="heat-top" aria-hidden="true"></span>
   <div class="feature-text">
     <p class="bcard-top"><span class="gh">{ICON_CODE}{e(p['repo'])}</span><span>Featured case study</span></p>
     <h3><a class="stretch" href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
@@ -162,7 +179,7 @@ def featured_card(p):
     <p class="feature-more" aria-hidden="true">Read the case study {ICON_OUT}</p>
   </div>
   <div class="feature-vis">
-    {diff_block(step['file'], step['before'], step['after'])}
+    {diff_switch(diff_steps)}
     <div class="viz-wrap">{bench(compact=True)}</div>
   </div>
 </article>"""
@@ -266,8 +283,8 @@ def home():
         <button class="morph-tab" type="button" aria-pressed="true">Buildings</button>
         <button class="morph-tab" type="button" aria-pressed="false">Spatial data</button>
         <button class="morph-tab" type="button" aria-pressed="false">Machine learning</button>
-        <span class="morph-track" aria-hidden="true"><span class="morph-progress"></span></span>
       </div>
+      <p class="morph-cap" aria-live="polite">Energy, daylight and airflow models for buildings</p>
       <p class="readout" aria-hidden="true"><span class="readout-live">webgl point cloud</span></p>
     </div>
   </div>
