@@ -37,3 +37,25 @@
     map.forEach((_, id) => { const s = document.getElementById(id); if (s) sio.observe(s); });
   }
 })();
+
+// Featured card: before/after tabs (arrow keys move between tabs).
+(() => {
+  document.querySelectorAll('.diff-switch').forEach(win => {
+    const tabs = [...win.querySelectorAll('.diff-tab')];
+    const select = i => tabs.forEach((t, k) => {
+      const on = k === i;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); select(i); });
+      t.addEventListener('keydown', ev => {
+        if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
+        ev.preventDefault();
+        const n = (i + (ev.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        select(n); tabs[n].focus();
+      });
+    });
+  });
+})();
