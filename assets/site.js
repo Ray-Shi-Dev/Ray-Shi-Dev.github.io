@@ -1,8 +1,39 @@
-// Shared: nav border once the page scrolls; safety net for the hero reveal.
+// Shared behaviour: nav border, hero reveal safety net, card spotlight,
+// charts that draw when they scroll into view, and the case-study table of contents.
 (() => {
   const nav = document.querySelector('.nav');
   const onScroll = () => nav && nav.classList.toggle('is-stuck', window.scrollY > 8);
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
   setTimeout(() => { const h = document.querySelector('.hero'); if (h) h.classList.add('is-ready'); }, 2000);
+
+  // Spotlight follows the pointer on cards (pointer devices only).
+  if (window.matchMedia('(hover: hover)').matches) {
+    document.querySelectorAll('.spot').forEach(el => {
+      el.addEventListener('pointermove', ev => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', `${ev.clientX - r.left}px`);
+        el.style.setProperty('--my', `${ev.clientY - r.top}px`);
+      });
+    });
+  }
+
+  // Charts draw once when they become visible.
+  const charts = document.querySelectorAll('.viz');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(entries => entries.forEach(en => {
+      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+    }), { threshold: 0.35 });
+    charts.forEach(c => io.observe(c));
+  } else charts.forEach(c => c.classList.add('in'));
+
+  // Case-study contents: highlight the section in view.
+  const links = [...document.querySelectorAll('.case-toc a')];
+  if (links.length && 'IntersectionObserver' in window) {
+    const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+    const sio = new IntersectionObserver(entries => entries.forEach(en => {
+      if (en.isIntersecting) { links.forEach(a => a.classList.remove('is-active')); const a = map.get(en.target.id); if (a) a.classList.add('is-active'); }
+    }), { rootMargin: '-30% 0px -60% 0px' });
+    map.forEach((_, id) => { const s = document.getElementById(id); if (s) sio.observe(s); });
+  }
 })();

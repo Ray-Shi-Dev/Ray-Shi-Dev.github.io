@@ -4,13 +4,17 @@ from pathlib import Path
 from PIL import Image
 from content import (SITE, GROUPS, PROJECTS, VENTURES, ABOUT, EXPERIENCE,
                      EDUCATION, TOOLKIT, CREDENTIALS, SERVICE)
-from viz import VIZ
+from viz import VIZ, bench
+from cases import CASES
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 
 ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION = "5"
+VERSION = "7"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -116,9 +120,57 @@ def facts_block(facts):
     return f'<dl class="facts">{rows}</dl>'
 
 
+_FMT = HtmlFormatter(nowrap=True, classprefix="t-")
+
+
+def hl_lines(code):
+    return highlight(code, PythonLexer(), _FMT).rstrip("\n").split("\n")
+
+
+def code_window(file, inner, label=""):
+    return f"""<figure class="code-win">
+  <figcaption class="code-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="code-file">{e(file)}</span><span class="code-label">{e(label)}</span></figcaption>
+  <pre tabindex="0"><code>{inner}</code></pre>
+</figure>"""
+
+
+def code_block(file, code):
+    lines = hl_lines(code)
+    inner = "".join(f'<span class="ln"><span class="ln-n" aria-hidden="true">{i}</span>{l or " "}</span>' for i, l in enumerate(lines, 1))
+    return code_window(file, inner, "Python")
+
+
+def diff_block(file, before, after):
+    b, a = hl_lines(before), hl_lines(after)
+    inner = "".join(f'<span class="ln del"><span class="ln-n" aria-hidden="true">−</span>{l or " "}</span>' for l in b)
+    inner += "".join(f'<span class="ln add"><span class="ln-n" aria-hidden="true">+</span>{l or " "}</span>' for l in a)
+    return code_window(file, inner, f"−{len(b)} +{len(a)}")
+
+
+def featured_card(p):
+    f = dict(p["facts"])
+    c = CASES[p["slug"]]
+    step = next(x for x in c["approach"] if x.get("before"))
+    metrics = "".join(f'<div class="fm"><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>' for val, lab in c["metrics"])
+    return f"""<article class="feature spot">
+  <div class="feature-text">
+    <p class="bcard-top"><span class="gh">{ICON_CODE}{e(p['repo'])}</span><span>Featured case study</span></p>
+    <h3><a class="stretch" href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
+    <p class="sum">{e(p['summary'])}</p>
+    <dl class="feature-metrics">{metrics}</dl>
+    <ul class="chips" aria-label="Stack">{chips(f['Stack'], 6)}</ul>
+    <p class="feature-more" aria-hidden="true">Read the case study {ICON_OUT}</p>
+  </div>
+  <div class="feature-vis">
+    {diff_block(step['file'], step['before'], step['after'])}
+    <div class="viz-wrap">{bench(compact=True)}</div>
+  </div>
+</article>"""
+
+
 def bento_card(p):
     f = dict(p["facts"])
-    return f"""<li class="bcard"><a href="/work/{p['slug']}/">
+    return f"""<li class="bcard spot"><a href="/work/{p['slug']}/">
   <div class="bcard-top"><span class="gh">{ICON_CODE}{e(p['repo'])}</span><span>{e(f['Type'].split(',')[0])}</span></div>
   <h3>{e(p['title'])}</h3>
   <p class="sum">{e(p['summary'])}</p>
@@ -196,7 +248,7 @@ def home():
 {nav(clear=True)}
 <main id="main">
 <section class="hero" aria-label="Introduction">
-  <canvas class="terrain" aria-hidden="true"></canvas>
+  <canvas class="gl" aria-hidden="true"></canvas>
   <div class="container hero-inner">
     <p class="status reveal"><span class="dot" aria-hidden="true"></span>{e(SITE['status'])}</p>
     <h1 class="hero-title reveal">Ray Shi</h1>
@@ -209,7 +261,15 @@ def home():
   </div>
   <div class="container hero-foot">
     <div><p class="aff-label">Experience and education</p><ul class="aff">{aff}</ul></div>
-    <p class="readout" aria-hidden="true"><span class="readout-live">terrain / 3D value noise</span></p>
+    <div class="morph">
+      <div class="morph-tabs" role="group" aria-label="Point cloud form">
+        <button class="morph-tab" type="button" aria-pressed="true">Buildings</button>
+        <button class="morph-tab" type="button" aria-pressed="false">Spatial data</button>
+        <button class="morph-tab" type="button" aria-pressed="false">Machine learning</button>
+        <span class="morph-track" aria-hidden="true"><span class="morph-progress"></span></span>
+      </div>
+      <p class="readout" aria-hidden="true"><span class="readout-live">webgl point cloud</span></p>
+    </div>
   </div>
 </section>
 
@@ -219,7 +279,8 @@ def home():
     <p class="sec-lede">{e(g['software'][1])}</p>
     <a class="btn sec-link" href="{SITE['github']}">All repositories {ICON_OUT}</a>
   </header>
-  <ul class="bento">{''.join(bento_card(p) for p in soft)}</ul>
+  {featured_card(soft[0])}
+  <ul class="bento">{''.join(bento_card(p) for p in soft[1:])}</ul>
 
   <header class="sub-head"><h3 class="sub-title">{e(g['simulation'][0])}</h3><p>{e(g['simulation'][1])}</p></header>
   <ul class="grid2">{''.join(image_card(p) for p in sim)}</ul>
@@ -261,7 +322,7 @@ def home():
 {contact_block()}
 {footer()}
 <script src="/assets/site.js?v={VERSION}" defer></script>
-<script src="/assets/terrain.js?v={VERSION}" defer></script>
+<script src="/assets/hero-gl.js?v={VERSION}" defer></script>
 </body></html>"""
     (ROOT / "index.html").write_text(page)
 
@@ -310,11 +371,38 @@ def project_page(i, p):
     hl = "".join(f"<li>{e(x)}</li>" for x in p["highlights"])
     group_label = dict((k, l) for k, l, _ in GROUPS)[p["group"]]
     if software:
-        visual = f'<div class="viz-wrap">{VIZ[slug]()}</div>'
+        visual = f'<div class="viz-wrap">{bench(compact=True) if slug == "vectorized-timeseries-scaling" else VIZ[slug]()}</div>'
         actions = f'<div class="p-actions"><a class="btn btn-primary" href="{SITE["github"]}/{p["repo"]}">View the code {ICON_OUT}</a></div>'
     else:
         visual = f'<figure>{img_tag(slug, p["cover_alt"], sizes="(max-width: 1200px) 100vw, 1200px", eager=True)}</figure>'
         actions = ""
+    if software:
+        c = CASES[slug]
+        metrics_band = '<dl class="metrics-band">' + "".join(f'<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>' for val, lab in c["metrics"]) + "</dl>"
+        steps = ""
+        for n, st in enumerate(c["approach"], 1):
+            code = ""
+            if st.get("before"):
+                code = diff_block(st["file"], st["before"], st["after"])
+            elif st.get("code"):
+                code = code_block(st["file"], st["code"])
+            steps += f"""<li class="step"><p class="step-n">{n:02d}</p><div><h3>{e(st['title'])}</h3><p>{e(st['text'])}</p>{code}</div></li>"""
+        toc = "".join(f'<li><a href="#{a}">{t}</a></li>' for a, t in [("problem", "Problem"), ("approach", "Approach"), ("results", "Results"), ("role", "My role")])
+        main_body = f"""<div class="container case">
+    <nav class="case-toc" aria-label="On this page"><p>On this page</p><ol>{toc}</ol></nav>
+    <div class="case-main">
+      <section id="problem" class="case-sec"><h2>Problem</h2>{''.join(f'<p>{e(x)}</p>' for x in c['problem'])}</section>
+      <section id="approach" class="case-sec"><h2>Approach</h2><ol class="steps">{steps}</ol></section>
+      <section id="results" class="case-sec"><h2>Results</h2>{''.join(f'<p>{e(x)}</p>' for x in c['results'])}{results}</section>
+      <section id="role" class="case-sec"><h2>My role</h2><p>{e(c['role'])}</p></section>
+    </div>
+  </div>"""
+    else:
+        metrics_band = ""
+        main_body = f"""<div class="container p-body">
+    <aside class="p-high"><h2>Highlights</h2><ul>{hl}</ul>{rel}</aside>
+    <div class="prose">{body}{results}</div>
+  </div>"""
     page = head(f"{p['title']} | Ray Shi", p["summary"], f"/work/{slug}/", f"/assets/og/{slug}.jpg")
     page += f"""
 <body class="project">
@@ -327,12 +415,10 @@ def project_page(i, p):
     <p class="p-sum">{e(p['summary'])}</p>
     {facts_block(p['facts'])}
     {actions}
+    {metrics_band}
     <div class="p-visual">{visual}</div>
   </header>
-  <div class="container p-body">
-    <aside class="p-high"><h2>Highlights</h2><ul>{hl}</ul>{rel}</aside>
-    <div class="prose">{body}{results}</div>
-  </div>
+  {main_body}
   {gallery_section}
   <nav class="container p-next" aria-label="More projects">
     <a class="prev" href="/work/{prv['slug']}/"><span>Previous</span><strong>{e(prv['title'])}</strong></a>
