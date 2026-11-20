@@ -1,8 +1,8 @@
-// Hero: a dense CAD / survey scan that rebuilds between three models sharing one pool of
-// line segments and points: a district of towers (building physics), a contoured terrain
-// (spatial data) and a layered network (machine learning). Raw WebGL: 1px lines with depth
-// fog, thousands of fine scan points plus brighter key vertices with depth of field, one amber
-// "measurement" layer per model, and smooth cursor parallax. Canvas fallback without WebGL.
+// Hero: a dense line-and-point installation that rebuilds between three models sharing one pool
+// of segments and points: twisted towers in a wind field under Tainan's sun-path dome (building
+// physics), a contoured terrain (spatial data) and a rolled data manifold unrolled layer by layer
+// (machine learning). Raw WebGL: 1px lines with depth fog, fine scan points and brighter key
+// vertices with depth of field, one amber measurement per model, smooth cursor parallax.
 (() => {
   const canvas = document.querySelector('.gl');
   if (!canvas) return;
@@ -12,7 +12,7 @@
   if (!gl) { const s = document.createElement('script'); s.src = '/assets/terrain.js'; canvas.classList.replace('gl', 'terrain'); document.body.appendChild(s); return; }
 
   const small = window.matchMedia('(max-width: 860px)').matches;
-  const NS = small ? 9000 : 20000;    // line segments per model
+  const NS = small ? 10000 : 26000;    // line segments per model
   const NP = small ? 7000 : 16000;    // points per model (scan dots + key vertices)
 
   let seed = 11;
@@ -22,57 +22,136 @@
   // segments: [x,y,z, x,y,z, hi]; points: [x,y,z, kind (0 scan, 1 key), hi]
   const seg = (o, a, b, hi = 0) => o.push([a[0], a[1], a[2], b[0], b[1], b[2], hi]);
 
-  // ---- 01 a district of towers --------------------------------------------------------
-  function district() {
+  // ---- 01 building physics: twisted towers in a wind field under a sun-path dome ----------
+  const Q = small ? 0.5 : 1;            // geometry density
+  const LAT = 23.0 * Math.PI / 180;     // Tainan
+  const sunDir = (dec, H) => {          // local east (x), up (y), north (-z)
+    const e = -Math.cos(dec) * Math.sin(H), n = Math.sin(dec) * Math.cos(LAT) - Math.cos(dec) * Math.cos(H) * Math.sin(LAT);
+    const u = Math.sin(dec) * Math.sin(LAT) + Math.cos(dec) * Math.cos(H) * Math.cos(LAT);
+    return [e, u, -n];
+  };
+  function building() {
     const segs = [], pts = [];
-    const CUT = 0.32;
-    const towers = [ // cx, cz, half w, half d, height, floor
-      [-0.15, 0.0, 0.34, 0.27, 1.95, 0.055],
-      [0.42, 0.12, 0.22, 0.22, 1.35, 0.055],
-      [0.38, -0.42, 0.18, 0.15, 0.95, 0.055],
-      [-0.75, 0.35, 0.22, 0.18, 0.85, 0.055],
-      [-0.72, -0.38, 0.2, 0.24, 1.1, 0.055],
-      [0.95, -0.05, 0.16, 0.2, 0.7, 0.055],
-      [0.05, 0.62, 0.26, 0.14, 0.55, 0.055],
-      [-1.15, -0.02, 0.14, 0.14, 0.5, 0.055],
-      [0.9, 0.55, 0.14, 0.12, 0.42, 0.055],
-    ];
     const Y0 = -1.0;
-    for (const [cx, cz, hw, hd, ht, fl] of towers) {
-      const y1 = Y0 + ht, corners = [[cx - hw, cz - hd], [cx + hw, cz - hd], [cx + hw, cz + hd], [cx - hw, cz + hd]];
-      const nf = Math.round(ht / fl);
-      for (let f = 0; f <= nf; f++) {
-        const y = Y0 + f * fl;
-        for (let i = 0; i < 4; i++) { const a = corners[i], b = corners[(i + 1) % 4]; seg(segs, [a[0], y, a[1]], [b[0], y, b[1]]); }
-        if (f % 4 === 0) for (const c of corners) pts.push([c[0], y, c[1], 1, 0]);
-      }
-      // mullions and facade scan points
-      for (let i = 0; i < 4; i++) {
-        const a = corners[i], b = corners[(i + 1) % 4], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        const n = Math.max(2, Math.round(len / 0.045));
-        for (let k = 0; k <= n; k++) {
-          const t = k / n, x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t;
-          seg(segs, [x, Y0, z], [x, y1, z]);
-          for (let f = 0; f <= nf; f += 2) pts.push([x, Y0 + f * fl, z, 0, 0]);
+    const SUN = sunDir(23.44 * Math.PI / 180, -0.95), sl = Math.hypot(...SUN), S = SUN.map(v => v / sl);
+    // cx, cz, a, b, floors, twist, taper, exponent, phase
+    const towers = [
+      [0.1, 0.0, 0.46, 0.2, 68, 2.1, 0.62, 3.2, 0.25],
+      [-0.95, -0.38, 0.22, 0.13, 34, -1.3, 0.78, 3.0, 1.2],
+      [1.05, 0.42, 0.16, 0.16, 24, 0.0, 0.9, 2.0, 0.0],
+    ];
+    const FH = 0.027;
+    const tops = [];
+    for (const [cx, cz, a, b, nf, tw, tp, ex, ph] of towers) {
+      const M = Math.round((a > 0.3 ? 84 : 56) * (small ? 0.6 : 1));
+      const ring = f => {
+        const s = f / nf, rot = ph + tw * s, sc = 1 - (1 - tp) * s * s, cr = Math.cos(rot), sr = Math.sin(rot);
+        return Array.from({ length: M }, (_, k) => {
+          const t = (k / M) * Math.PI * 2, c = Math.cos(t), si = Math.sin(t);
+          const x0 = a * sc * Math.sign(c) * Math.pow(Math.abs(c), 2 / ex), z0 = b * sc * Math.sign(si) * Math.pow(Math.abs(si), 2 / ex);
+          return [cx + x0 * cr - z0 * sr, Y0 + f * FH, cz + x0 * sr + z0 * cr];
+        });
+      };
+      const rings = [];
+      for (let f = 0; f <= nf; f++) rings.push(ring(f));
+      const step = small ? 2 : 1;
+      for (let f = 0; f <= nf; f += step) {
+        const r = rings[f], major = f % 8 === 0 || f === nf;
+        for (let k = 0; k < M; k++) seg(segs, r[k], r[(k + 1) % M]);
+        // facade points carry the solar radiation: hi grows with exposure to the sun
+        for (let k = 0; k < M; k += (major ? 1 : 3)) {
+          const p = r[k], q = r[(k + 1) % M], o = r[(k + M - 1) % M];
+          const tx = q[0] - o[0], tz = q[2] - o[2], nl = Math.hypot(tx, tz) || 1, nx = tz / nl, nz = -tx / nl;
+          const ex2 = Math.max(0, nx * S[0] + nz * S[2]) * (0.5 + 0.5 * f / nf);
+          pts.push([p[0], p[1], p[2], major && k % 7 === 0 ? 1 : 0, Math.min(1, Math.pow(ex2, 1.6) * 1.2)]);
         }
       }
-      // roof cross-bracing
-      seg(segs, [cx - hw, y1, cz - hd], [cx + hw, y1, cz + hd]); seg(segs, [cx + hw, y1, cz - hd], [cx - hw, y1, cz + hd]);
-      // section cut at the slicing height, highlighted
-      if (Y0 + ht > CUT - 0.6 && ht > 1.0) {
-        const yc = CUT - 0.5, m = 0.025;
-        const c = [[cx - hw - m, cz - hd - m], [cx + hw + m, cz - hd - m], [cx + hw + m, cz + hd + m], [cx - hw - m, cz + hd + m]];
-        for (let i = 0; i < 4; i++) { const a = c[i], b = c[(i + 1) % 4]; seg(segs, [a[0], yc, a[1]], [b[0], yc, b[1]], 1); }
-        for (const q of c) pts.push([q[0], yc, q[1], 1, 1]);
+      // helical mullions following the twist
+      const every = small ? 6 : 3;
+      for (let k = 0; k < M; k += every) for (let f = 0; f < nf; f++) seg(segs, rings[f][k], rings[f + 1][k]);
+      tops.push([cx, cz, Math.max(a, b) * 1.45, Y0 + nf * FH]);
+    }
+
+    // wind: potential flow around each tower (2D doublets that fade out above the roof)
+    const vel = (x, y, z) => {
+      let u = 1, w = 0, lift = 0;
+      for (const [cx, cz, R, top] of tops) {
+        const fade = Math.min(1, Math.max(0, (top - y) / 0.22)), R2 = R * R * fade;
+        const dx = x - cx, dz = z - cz, r2 = dx * dx + dz * dz + 1e-4, r4 = r2 * r2;
+        u -= R2 * (dx * dx - dz * dz) / r4; w -= 2 * R2 * dx * dz / r4;
+        const wake = Math.exp(-(dz * dz) / (R * R * 2.2)) * Math.max(0, Math.min(1, dx / 0.3)) * fade;
+        w += 1.1 * wake * n2(x * 1.8 + cz * 7, y * 1.6 + 2);
+        lift += 0.35 * wake * n2(x * 1.6 + 5, z * 2 + y);
+        const roof = Math.exp(-((y - top) ** 2) / 0.02) * Math.exp(-r2 / (R * R * 3));
+        lift += 0.5 * roof * Math.sign(-dx) * 0.6;
+      }
+      return [u, lift, w];
+    };
+    const levels = small ? [-0.8, -0.3, 0.2, 0.7] : [-0.86, -0.5, -0.14, 0.22, 0.58, 0.9];
+    const ns = small ? 10 : 18, h = 0.045;
+    levels.forEach((y0, li) => {
+      for (let i = 0; i <= ns; i++) {
+        let p = [-2.3, y0, -0.85 + 1.7 * (i / ns) + (li % 2) * (0.85 / ns)];
+        let prev = p, n = 0;
+        while (p[0] < 2.3 && n++ < 220) {
+          const v1 = vel(...p), m1 = Math.hypot(...v1) || 1;
+          const mid = [p[0] + v1[0] / m1 * h / 2, p[1] + v1[1] / m1 * h / 2, p[2] + v1[2] / m1 * h / 2];
+          const v2 = vel(...mid), m2 = Math.hypot(...v2) || 1;
+          p = [p[0] + v2[0] / m2 * h, p[1] + v2[1] / m2 * h * 0.5, p[2] + v2[2] / m2 * h];
+          if (tops.some(([cx, cz, R, top]) => p[1] < top + 0.02 && (p[0] - cx) ** 2 + (p[2] - cz) ** 2 < R * R * 0.8)) break;
+          seg(segs, prev, p);
+          if (n % 14 === (i * 3 + li) % 14) pts.push([p[0], p[1], p[2], 0, 0]);
+          prev = p;
+        }
+      }
+    });
+
+    // sun-path dome for Tainan: solstices and equinox, hour marks, the summer arc in amber
+    const C = [0.1, Y0, 0.0], RD = 1.8;
+    for (const [d, hi] of [[23.44, 1], [0, 0], [-23.44, 0]]) {
+      const dec = d * Math.PI / 180, K = 160;
+      let prev = null;
+      for (let k = 0; k <= K; k++) {
+        const H = -Math.PI + (2 * Math.PI * k) / K, s = sunDir(dec, H);
+        const p = s[1] > -0.005 ? [C[0] + s[0] * RD, C[1] + s[1] * RD, C[2] + s[2] * RD] : null;
+        if (p && prev) seg(segs, prev, p, hi);
+        prev = p;
+      }
+      for (let hr = -7; hr <= 7; hr++) {
+        const s = sunDir(dec, hr * Math.PI / 12);
+        if (s[1] > 0) pts.push([C[0] + s[0] * RD, C[1] + s[1] * RD, C[2] + s[2] * RD, 1, hi]);
       }
     }
-    // site grid, fine and wide
-    for (let i = -30; i <= 30; i++) {
-      const v = i * 0.07;
-      seg(segs, [-2.2, Y0, v * 0.8], [2.2, Y0, v * 0.8]);
-      seg(segs, [v * 1.05, Y0, -1.7], [v * 1.05, Y0, 1.7]);
+    // analemma-like hour lines joining the arcs
+    for (let hr = -6; hr <= 6; hr++) {
+      let prev = null;
+      for (let d = -23.44; d <= 23.45; d += 2.93) {
+        const s = sunDir(d * Math.PI / 180, hr * Math.PI / 12);
+        const p = s[1] > 0 ? [C[0] + s[0] * RD, C[1] + s[1] * RD, C[2] + s[2] * RD] : null;
+        if (p && prev && (hr + 6) % 2 === 0) seg(segs, prev, p);
+        prev = p;
+      }
     }
-    for (let i = -30; i <= 30; i += 3) for (let j = -24; j <= 24; j += 3) pts.push([i * 0.0735, Y0, j * 0.07, 0, 0]);
+    // the sun position used for the facade study
+    pts.push([C[0] + S[0] * RD, C[1] + S[1] * RD, C[2] + S[2] * RD, 1, 1]);
+    // ground: horizon ring, polar rings and a compass rose of ticks
+    const RN = small ? 8 : 14;
+    for (let r = 1; r <= RN; r++) {
+      const R = (RD * r) / RN, K = Math.round(40 + 70 * r / RN);
+      for (let k = 0; k < K; k++) {
+        if (r < RN && k % 2) continue;
+        const a0 = (k / K) * Math.PI * 2, a1 = ((k + 1) / K) * Math.PI * 2;
+        seg(segs, [C[0] + Math.cos(a0) * R, Y0, C[2] + Math.sin(a0) * R], [C[0] + Math.cos(a1) * R, Y0, C[2] + Math.sin(a1) * R]);
+      }
+      for (let k = 0; k < 48; k++) { const a = (k / 48) * Math.PI * 2; pts.push([C[0] + Math.cos(a) * R, Y0, C[2] + Math.sin(a) * R, 0, 0]); }
+    }
+    for (let k = 0; k < 72; k++) {
+      const a = (k / 72) * Math.PI * 2, l = k % 6 === 0 ? 0.16 : 0.06;
+      seg(segs, [C[0] + Math.cos(a) * RD, Y0, C[2] + Math.sin(a) * RD], [C[0] + Math.cos(a) * (RD + l), Y0, C[2] + Math.sin(a) * (RD + l)]);
+    }
+    const B = 0.9, cb = Math.cos(B), sb = Math.sin(B), rot = (x, z) => [x * cb - z * sb, x * sb + z * cb];
+    for (const s of segs) { [s[0], s[2]] = rot(s[0], s[2]); [s[3], s[5]] = rot(s[3], s[5]); }
+    for (const p of pts) [p[0], p[2]] = rot(p[0], p[2]);
     return { segs, pts };
   }
 
@@ -115,47 +194,83 @@
     return { segs, pts };
   }
 
-  // ---- 03 network ----------------------------------------------------------------------
+  // ---- 03 neural: a rolled data manifold unrolled layer by layer, joined by fibre bundles ----
   function network() {
     const segs = [], pts = [];
-    const layers = [10, 18, 26, 26, 18, 10, 4];
-    const nodes = layers.map((n, li) => {
-      const x = -1.8 + (3.6 * li) / (layers.length - 1);
-      return Array.from({ length: n }, (_, j) => {
-        const a = (j / n) * Math.PI * 2 + li * 0.45, r = 0.18 + 0.032 * n;
-        return [x, Math.sin(a) * r, Math.cos(a) * r * 0.85];
-      });
-    });
-    const path = nodes.map((l, li) => l[(li * 5 + 2) % l.length]);
-    for (let l = 0; l < nodes.length - 1; l++) for (const a of nodes[l]) for (const b of nodes[l + 1]) {
-      const hi = path[l] === a && path[l + 1] === b ? 1 : 0;
-      seg(segs, a, b, hi);
-      // signal points travelling along edges
-      const n = hi ? 14 : 2;
-      for (let k = 0; k < n; k++) { const t = rnd(); pts.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t, 0, hi]); }
+    const L = 7, NT = small ? 22 : 40, NV = small ? 9 : 14;
+    const X0 = -2.0, X1 = 1.55, W = 1.5, HV = 0.58;
+    const TU = 0.62, TV = 0.18;          // the traced sample (t, v)
+    const BETA = 0.9, cb = Math.cos(BETA), sb = Math.sin(BETA);
+    // centre line of layer l as a function of arc length t in [0,1]
+    const curves = [];
+    for (let l = 0; l < L; l++) {
+      const s = l / (L - 1), c = 10.5 * Math.pow(1 - s, 1.35), M = 400, g0 = -0.75 + 0.5 * (1 - s);
+      const P = [[0, 0]]; let x = 0, z = 0;
+      for (let k = 1; k <= M; k++) { const t = (k - 0.5) / M, th = g0 + c * Math.pow(1 - t, 2); x += Math.sin(th) * W / M; z += Math.cos(th) * W / M; P.push([x, z]); }
+      let mx = 0, mz = 0; for (const p of P) { mx += p[0]; mz += p[1]; } mx /= P.length; mz /= P.length;
+      curves.push(t => { const f = t * M, i = Math.min(M - 1, Math.floor(f)), r = f - i, a = P[i], b = P[i + 1]; return [a[0] + (b[0] - a[0]) * r - mx, a[1] + (b[1] - a[1]) * r - mz]; });
     }
-    for (let l = 0; l < nodes.length; l++) {
-      for (const n of nodes[l]) {
-        const hi = path[l] === n ? 1 : 0, r = 0.04, m = 14;
-        for (let k = 0; k < m; k++) {
-          const a0 = (k / m) * Math.PI * 2, a1 = ((k + 1) / m) * Math.PI * 2;
-          seg(segs, [n[0], n[1] + Math.sin(a0) * r, n[2] + Math.cos(a0) * r], [n[0], n[1] + Math.sin(a1) * r, n[2] + Math.cos(a1) * r], hi);
-        }
-        pts.push([n[0], n[1], n[2], 1, hi]);
-        for (let k = 0; k < 18; k++) pts.push([n[0] + gauss() * 0.022, n[1] + gauss() * 0.022, n[2] + gauss() * 0.022, 0, hi]);
-      }
-      const R = 0.18 + 0.032 * layers[l] + 0.16, x = nodes[l][0][0];
-      for (let k = 0; k < 64; k++) {
-        const a0 = (k / 64) * Math.PI * 2, a1 = ((k + 1) / 64) * Math.PI * 2;
-        if (k % 2 === 0) seg(segs, [x, Math.sin(a0) * R, Math.cos(a0) * R * 0.85], [x, Math.sin(a1) * R, Math.cos(a1) * R * 0.85]);
+    const size = [0.78, 0.86, 0.94, 1.0, 1.0, 1.0, 1.0];
+    const place = (l, t, v) => {
+      const s = l / (L - 1), q = curves[l](t), h = HV * size[l] * (1 + 0.14 * Math.sin(Math.PI * 2 * t + l * 0.8) * v);
+      const X = X0 + (X1 - X0) * s + q[0], Y = -0.08 + v * h + 0.05 * Math.sin(4.2 * t + l * 0.9), Z = q[1];
+      return [X * cb - Z * sb, Y, X * sb + Z * cb];
+    };
+    for (let l = 0; l < L; l++) {
+      const rows = [];
+      for (let j = 0; j <= NV; j++) { rows[j] = []; for (let i = 0; i <= NT * 2; i++) rows[j][i] = place(l, i / (NT * 2), -1 + 2 * j / NV); }
+      for (let j = 0; j <= NV; j++) for (let i = 0; i < NT * 2; i++) seg(segs, rows[j][i], rows[j][i + 1]);
+      for (let i = 0; i <= NT * 2; i += 2) for (let j = 0; j < NV; j++) seg(segs, rows[j][i], rows[j + 1][i]);
+      for (let j = 0; j <= NV; j++) for (let i = 0; i <= NT * 2; i++) {
+        const t = i / (NT * 2), v = -1 + 2 * j / NV, d2 = ((t - TU) * 2) ** 2 + (v - TV) ** 2;
+        const edge = j === 0 || j === NV;
+        if (!edge && i % 2) continue;
+        pts.push([...rows[j][i], (edge && i % 10 === 0) ? 1 : 0, Math.exp(-d2 / 0.05) * 0.85]);
       }
     }
-    // a loose field of embedding points around the graph
-    for (let k = 0; k < 2600; k++) { const x = (rnd() - 0.5) * 4.2; pts.push([x, gauss() * 0.55, gauss() * 0.5, 0, 0]); }
+    // fibre bundles carrying the same sample from layer to layer
+    const curve = (a, b, hi, n) => {
+      const dx = [(b[0] - a[0]) * 0.5, 0, (b[2] - a[2]) * 0.5];
+      let prev = a;
+      for (let k = 1; k <= n; k++) {
+        const t = k / n, mt = 1 - t;
+        const p = [0, 1, 2].map(c => mt * mt * mt * a[c] + 3 * mt * mt * t * (a[c] + dx[c] * 0.9) + 3 * mt * t * t * (b[c] - dx[c] * 0.9) + t * t * t * b[c]);
+        seg(segs, prev, p, hi);
+        if (k % 4 === 2 && rnd() < (hi ? 1 : 0.45)) pts.push([...p, 0, hi]);
+        prev = p;
+      }
+    };
+    const FT = small ? 6 : 3, FV = small ? 3 : 2;
+    for (let l = 0; l < L - 1; l++) for (let j = 1; j < NV; j += FV) for (let i = 1; i < NT; i += FT) {
+      if (rnd() < 0.3) continue;
+      const t = (i + 0.5 * (j % 2)) / NT, v = -1 + 2 * j / NV;
+      curve(place(l, t, v), place(l + 1, t, v), 0, 12);
+    }
+    for (let l = 0; l < L - 1; l++) curve(place(l, TU, TV), place(l + 1, TU, TV), 1, 24);
+    for (let l = 0; l < L; l++) pts.push([...place(l, TU, TV), 1, 1]);
+    for (let k = 0; k < (small ? 700 : 2000); k++) {
+      const l = Math.floor(rnd() * (L - 1)), t = rnd(), v = rnd() * 2 - 1, f = rnd();
+      const a = place(l, t, v), b = place(l + 1, t, v);
+      pts.push([a[0] + (b[0] - a[0]) * f + gauss() * 0.015, a[1] + (b[1] - a[1]) * f + gauss() * 0.02, a[2] + (b[2] - a[2]) * f + gauss() * 0.015, 0, 0]);
+    }
     return { segs, pts };
   }
 
+  // halve chains of connected segments until the model fits the shared budget
+  function fit(segs) {
+    for (let pass = 0; pass < 6 && segs.length > NS; pass++) {
+      const out = []; let odd = false;
+      for (let i = 0; i < segs.length; i++) {
+        const s = segs[i], n = segs[i + 1];
+        if (n && !odd && s[3] === n[0] && s[4] === n[1] && s[5] === n[2] && s[6] === n[6]) { out.push([s[0], s[1], s[2], n[3], n[4], n[5], s[6]]); i++; odd = true; }
+        else { out.push(s); odd = false; }
+      }
+      segs = out;
+    }
+    return segs;
+  }
   function resample(model) {
+    model.segs = fit(model.segs);
     let total = 0; for (const s of model.segs) total += Math.hypot(s[3] - s[0], s[4] - s[1], s[5] - s[2]);
     let target = total / NS, out = [];
     for (let pass = 0; pass < 10; pass++) {
@@ -171,7 +286,7 @@
       if (out.length <= NS) break;
       target *= 1.07;
     }
-    if (out.length > NS) out.length = NS;
+    if (out.length > NS) { for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; } out.length = NS; }
     while (out.length < NS) { const s = out[Math.floor(rnd() * out.length)]; out.push([s[0], s[1], s[2], s[0], s[1], s[2], s[6]]); }
     out.sort((a, b) => (a[0] + a[3] + 0.35 * (a[2] + a[5])) - (b[0] + b[3] + 0.35 * (b[2] + b[5])));
     let pts = model.pts.slice();
@@ -183,7 +298,7 @@
     pts.sort((a, b) => (a[0] + 0.35 * a[2]) - (b[0] + 0.35 * b[2]));
     return { segs: out, pts };
   }
-  const MODELS = [district(), terrain(), network()].map(resample);
+  const MODELS = [building(), terrain(), network()].map(resample);
 
   // ---- buffers ----------------------------------------------------------------------------
   const LV = NS * 2;
