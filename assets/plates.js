@@ -179,7 +179,7 @@
 
   // ---- molnar: loop to vector; random strokes aligned left to right, and under the pointer ---
   const molnar = {
-    build(W, H) {
+    build(W, H, el) {
       const narrow = W < 520, cols = Math.max(22, Math.round(W / (narrow ? 13 : 15))), padT = narrow ? 44 : 60, padB = narrow ? 40 : 54;
       const cell = W / (cols + 2), rows = Math.max(6, Math.floor((H - padT - padB) / cell));
       const oy = padT + (H - padT - padB - rows * cell) / 2, ox = cell;
@@ -189,7 +189,8 @@
         if (rnd() < 0.07 * (1 - t)) continue;
         cells.push({ x, y, t, th: rnd() * Math.PI });
       }
-      return { cells, len: cell * 0.86, narrow, padT, padB, R: narrow ? 70 : 120 };
+      const paper = !!el.closest('.paper');
+      return { cells, len: cell * 0.86, narrow, padT, padB, R: narrow ? 70 : 120, ink: paper ? a => `rgba(14,15,18,${a})` : INK, hi: paper ? a => `rgba(201,138,30,${a})` : AMBER_A, hiText: paper ? '#94590A' : AMBER };
     },
     frame(ctx, m, W, H, p, t, reveal) {
       ctx.lineWidth = 1; ctx.lineCap = 'round';
@@ -199,15 +200,15 @@
         let a = c.th * (1 - c.t) + (Math.PI / 2) * c.t, f = 0;
         if (p) { const d2 = (c.x - p.x) ** 2 + (c.y - p.y) ** 2; f = Math.exp(-d2 / R2); a = a * (1 - f) + (Math.PI / 2) * f; }
         const dx = Math.cos(a) * m.len / 2, dy = Math.sin(a) * m.len / 2;
-        ctx.lineWidth = 1.15; ctx.strokeStyle = f > 0.35 ? AMBER_A(0.4 + 0.6 * f) : INK(0.4 + 0.42 * c.t);
+        ctx.lineWidth = 1.15; ctx.strokeStyle = f > 0.35 ? m.hi(0.5 + 0.5 * f) : m.ink(0.45 + 0.45 * c.t);
         ctx.beginPath(); ctx.moveTo(c.x - dx, c.y - dy); ctx.lineTo(c.x + dx, c.y + dy); ctx.stroke();
       }
       if (reveal < 1) return;
       const y0 = m.padT * 0.5, y1 = H - m.padB * 0.45;
-      label(ctx, m.narrow ? 'for i in buildings' : 'for i, idx in enumerate(building_id)', 18, y0, INK(0.55));
-      label(ctx, m.narrow ? '.transform(mean)' : "groupby('building_id').transform('mean')", W - 18, y0, INK(0.8), 'right');
-      label(ctx, '26.6 min', 18, y1, INK(0.55));
-      label(ctx, '7.3 min', W - 18, y1, AMBER, 'right');
+      label(ctx, m.narrow ? 'for i in buildings' : 'for i, idx in enumerate(building_id)', 18, y0, m.ink(0.62));
+      label(ctx, m.narrow ? '.transform(mean)' : "groupby('building_id').transform('mean')", W - 18, y0, m.ink(0.9), 'right');
+      label(ctx, '26.6 min', 18, y1, m.ink(0.62));
+      label(ctx, '7.3 min', W - 18, y1, m.hiText, 'right');
     },
   };
 

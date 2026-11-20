@@ -15,7 +15,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION="16"
+VERSION="17"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -181,37 +181,24 @@ def diff_switch(steps):
 </figure>"""
 
 
-def ex_text(p, n, lead=False):
-    f = dict(p["facts"])
-    return f"""<div class="ex-text">
-    <p class="ex-top"><span class="idx"><b>{n:02d}</b>{' / Featured case study' if lead else ''}</span><span class="idx">{e(p['repo'])}</span></p>
-    <h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
-    <p class="ex-kind">{e(f['Type'])}</p>
-    <p class="ex-sum">{e(p['summary'])}</p>
-    {stack(f['Stack'], 7)}
-    <a class="ex-more" href="/work/{p['slug']}/" tabindex="-1" aria-hidden="true">Read the case study {ICON_OUT}</a>
-  </div>"""
-
-
-def ex_art(p, n, inner, live=False):
-    attr = ' data-plate="molnar"' if live else ''
-    return f"""<figure class="ex-art">
-    <div class="ex-frame"{attr}>{inner}</div>
-    <figcaption><span class="idx">Fig. {n:02d}</span><span>{e(CAPTIONS[p['slug']])}</span></figcaption>
-  </figure>"""
-
-
 def featured_card(p):
+    f = dict(p["facts"])
     c = CASES[p["slug"]]
     diff_steps = [x for x in c["approach"] if x.get("before")]
     metrics = "".join(f'<div><dt>{e(lab)}</dt><dd{count_attr(val)}>{e(val)}</dd></div>' for val, lab in c["metrics"])
-    return f"""<article class="ex ex--lead">
-  <div class="ex-row">
-  {ex_art(p, 1, '<canvas class="plate-art" aria-hidden="true"></canvas>', live=True)}
-  {ex_text(p, 1, lead=True)}
+    return f"""<article class="lead">
+  <p class="lead-top"><span class="idx"><b>01</b> / Featured case study</span><span class="idx">{e(p['repo'])}</span></p>
+  <div class="lead-head">
+    <h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
+    <div class="lead-side"><p class="lead-kind">{e(f['Type'])}</p><p class="lead-sum">{e(p['summary'])}</p>{stack(f['Stack'], 7)}
+      <a class="ex-more" href="/work/{p['slug']}/">Read the case study {ICON_OUT}</a></div>
   </div>
-  <dl class="ex-metrics">{metrics}</dl>
-  <div class="ex-evidence">
+  <figure class="lead-art">
+    <div class="lead-frame" data-plate="molnar"><canvas class="plate-art" aria-hidden="true"></canvas></div>
+    <figcaption><span class="idx">Fig. 01</span><span>{e(CAPTIONS[p['slug']])}</span></figcaption>
+  </figure>
+  <dl class="lead-metrics">{metrics}</dl>
+  <div class="lead-evidence">
     {diff_switch(diff_steps)}
     <div class="viz-wrap">{bench(compact=True)}</div>
   </div>
@@ -219,56 +206,31 @@ def featured_card(p):
 
 
 def bento_card(p, n):
-    return f"""<li class="ex{' ex--flip' if n % 2 == 1 else ''}"><div class="ex-row">
-  {ex_art(p, n, ART[p['slug']]())}
-  {ex_text(p, n)}
-</div></li>"""
+    f = dict(p["facts"])
+    return f"""<li class="sw"><a href="/work/{p['slug']}/">
+  <figure class="sw-art">{ART[p['slug']]()}</figure>
+  <p class="sw-top"><span class="idx"><b>{n:02d}</b></span><span class="idx">{e(p['repo'])}</span></p>
+  <h3>{e(p['title'])}</h3>
+  <p class="sw-kind">{e(f['Type'])}</p>
+  <p class="sw-sum">{e(p['summary'])}</p>
+  {stack(f['Stack'], 5)}
+  <p class="sw-cap"><span class="idx">Fig. {n:02d}</span> {e(CAPTIONS[p['slug']])}</p>
+</a></li>"""
 
 
-FOCUS = {"sme-spatial-analysis-taipei": "50% 74%", "remote-sensing-west-coast": "50% 38%", "arup-energy-climate-modelling": "50% 30%"}
+FOCUS = {"sme-spatial-analysis-taipei": "50% 62%", "remote-sensing-west-coast": "50% 38%", "arup-energy-climate-modelling": "50% 30%"}
 
 
-def specimen(p, n):
+def plate_item(p, n, sizes, cls=""):
     loc = dict(p["facts"]).get("Location", "")
-    pos = FOCUS.get(p["slug"], "50% 50%")
-    big, sm = f"/assets/img/{p['slug']}/cover.webp", f"/assets/img/{p['slug']}/cover-sm.webp"
-    lb, ls = f"/assets/img/{p['slug']}/line.webp", f"/assets/img/{p['slug']}/line-sm.webp"
-    w, h = size(big)
-    sizes = "(max-width: 860px) 100vw, 50vw"
-    return f"""<article class="spec" style="--pos:{pos}">
-  <div class="spec-plate" data-lens>
-    <img class="spec-line" src="{ls}" srcset="{ls} {w // 2}w, {lb} {w}w" sizes="{sizes}" width="{w}" height="{h}" alt="" loading="lazy" decoding="async">
-    <img class="spec-orig" src="{sm}" srcset="{sm} {size(sm)[0]}w, {big} {w}w" sizes="{sizes}" width="{w}" height="{h}" alt="{e(p['cover_alt'])}" loading="lazy" decoding="async">
-    <span class="spec-ring" aria-hidden="true"></span>
-    <p class="spec-top"><span class="gi-n">Fig. {n:02d}</span><span class="spec-loc">{e(loc)}</span></p>
-    <button class="spec-toggle" type="button" aria-pressed="false">Original output</button>
+    return f"""<li class="pl{cls}"><a href="/work/{p['slug']}/">
+  <figure class="pl-fig" style="--pos:{FOCUS.get(p['slug'], '50% 50%')}">{img_tag(p['slug'], p['cover_alt'], sizes=sizes)}</figure>
+  <div class="pl-cap">
+    <p class="pl-meta"><span class="idx"><b>Fig. {n:02d}</b></span><span class="idx">{e(loc)}</span></p>
+    <h3>{e(p['title'])}</h3>
+    {f'<p class="pl-sum">{e(p["summary"])}</p>' + stack(p['tags']) if not cls else ''}
   </div>
-  <div class="spec-cap">
-    <h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
-    <div><p class="spec-sum">{e(p['summary'])}</p>{stack(p['tags'])}</div>
-  </div>
-</article>"""
-
-
-def render_spec(p, n):
-    loc = dict(p["facts"]).get("Location", "")
-    return f"""<article class="spec spec--render">
-  <div class="spec-plate">{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 860px) 100vw, 33vw")}
-    <p class="spec-top"><span class="gi-n">Fig. {n:02d}</span></p>
-  </div>
-  <div class="spec-cap"><p class="spec-loc">{e(loc)}</p><h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3></div>
-</article>"""
-
-
-def gallery(items, start):
-    return '<div class="wall">' + "".join(specimen(p, start + k) for k, p in enumerate(items)) + "</div>"
-
-
-def mini_card(p, n):
-    loc = dict(p["facts"]).get("Location", "")
-    return f"""<li class="mcard"><a href="/work/{p['slug']}/">
-  <figure>{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 860px) 50vw, 33vw")}<span class="gi-n">Fig. {n:02d}</span></figure>
-  <h4>{e(p['title'])}</h4><p>{e(loc)}</p></a></li>"""
+</a></li>"""
 
 
 def timeline(items, now_first=False):
@@ -307,7 +269,7 @@ def jsonld():
     return f'<script type="application/ld+json">{json.dumps(data)}</script>\n'
 
 
-MODES = [("01", "Building Physics"), ("02", "Spatial Terrain"), ("03", "Neural Graph")]
+MODES = [("01", "Spatial Data Science"), ("02", "Physics-Based Simulation"), ("03", "Representation Learning")]
 
 
 def sec_head(n, label, title_id, title, lede="", link=""):
@@ -375,6 +337,7 @@ def home():
 <main id="main">
 <section class="hero" aria-label="Introduction">
   <canvas class="gl" aria-hidden="true"></canvas>
+  <div class="probe-layer" aria-hidden="true"></div>
   <div class="container hero-inner">
     <div class="hero-main">
       <h1 class="hero-title reveal">Ray Shi</h1>
@@ -399,18 +362,19 @@ def home():
 
 <section class="section" id="work" aria-labelledby="work-title">
   {plate("ridge", "01", "Work", "work-title", g['software'][0], "Meter field. 72 hourly load traces over one year, one carrying an injected anomaly. Move across it to scan.")}
+  <div class="paper">
   <div class="container">
   {sec_intro(g['software'][1], f'<a class="btn sec-link" href="{SITE["github"]}">All repositories {ICON_OUT}</a>')}
   {featured_card(soft[0])}
-  <ol class="catalogue">{''.join(bento_card(p, n) for n, p in enumerate(soft[1:], 2))}</ol>
+  <ol class="sw-list">{''.join(bento_card(p, n) for n, p in enumerate(soft[1:], 2))}</ol>
 
-  {sub_head("01.2", g['simulation'][0], "Line studies traced from each project's own output. Move over a plate to see the original through the lens.")}
-  </div>
-  {gallery(sim, 5)}
-  <div class="container">
+  {sub_head("01.2", g['simulation'][0], g['simulation'][1])}
+  <ol class="pl-grid">{''.join(plate_item(p, 5 + k, "(max-width: 860px) 100vw, 50vw") for k, p in enumerate(sim))}</ol>
+
   {sub_head("01.3", g['design'][0], g['design'][1])}
+  <ol class="pl-grid pl-grid--3">{''.join(plate_item(p, 9 + k, "(max-width: 860px) 100vw, 33vw", " pl--sm") for k, p in enumerate(des))}</ol>
   </div>
-  <div class="wall wall--3">{''.join(render_spec(p, 9 + k) for k, p in enumerate(des))}</div>
+  </div>
 </section>
 
 <section class="section" id="experience" aria-labelledby="exp-title">

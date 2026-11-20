@@ -19,6 +19,9 @@
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
 
+  // probes: { p:[x,y,z], rows:[title, ...] } readouts computed from each model; anchors: { p, label }
+  const fx = (v, d = 1) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d).replace('-', '\u2212');
+  const compass = a => ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((a % 360) + 360) % 360 / 45) % 8];
   // segments: [x,y,z, x,y,z, hi]; points: [x,y,z, kind (0 scan, 1 key), hi]
   const seg = (o, a, b, hi = 0) => o.push([a[0], a[1], a[2], b[0], b[1], b[2], hi]);
 
@@ -31,7 +34,7 @@
     return [e, u, -n];
   };
   function building() {
-    const segs = [], pts = [];
+    const segs = [], pts = [], probes = [], anchors = [];
     const Y0 = -1.0;
     const SUN = sunDir(23.44 * Math.PI / 180, -0.95), sl = Math.hypot(...SUN), S = SUN.map(v => v / sl);
     // cx, cz, a, b, floors, twist, taper, exponent, phase
@@ -63,6 +66,11 @@
           const p = r[k], q = r[(k + 1) % M], o = r[(k + M - 1) % M];
           const tx = q[0] - o[0], tz = q[2] - o[2], nl = Math.hypot(tx, tz) || 1, nx = tz / nl, nz = -tx / nl;
           const ex2 = Math.max(0, nx * S[0] + nz * S[2]) * (0.5 + 0.5 * f / nf);
+          if (a > 0.3 && k % 4 === 0 && f % 2 === 0) {
+            const cosi = Math.max(0, nx * S[0] + nz * S[2]) * Math.sqrt(1 - S[1] * S[1]), irr = 870 * cosi + 105;
+            probes.push({ p: p.slice(), irr, rows: ['Facade irradiance', `level ${f} of ${nf}, ${Math.round(f * 4)} m`, `normal azimuth ${Math.round(((Math.atan2(nx, -nz) * 180 / Math.PI) + 360) % 360)}\u00b0 ${compass(Math.atan2(nx, -nz) * 180 / Math.PI)}`,
+              `direct + diffuse ${Math.round(irr)} W/m\u00b2`, '21 Jun, 08:22 solar time'] });
+          }
           pts.push([p[0], p[1], p[2], major && k % 7 === 0 ? 1 : 0, Math.min(1, Math.pow(ex2, 1.6) * 1.2)]);
         }
       }
@@ -101,6 +109,10 @@
           if (tops.some(([cx, cz, R, top]) => p[1] < top + 0.02 && (p[0] - cx) ** 2 + (p[2] - cz) ** 2 < R * R * 0.8)) break;
           seg(segs, prev, p);
           if (n % 14 === (i * 3 + li) % 14) pts.push([p[0], p[1], p[2], 0, 0]);
+          if (n % 5 === 0) {
+            const v = vel(...p), U = Math.hypot(v[0], v[2]), cp = 1 - U * U;
+            probes.push({ p: p.slice(), cp, rows: ['Wind field, potential flow', `height ${Math.round((p[1] - Y0) / FH * 4)} m`, `U/U\u221e ${fx(U, 2)}`, `Cp = 1 \u2212 (U/U\u221e)\u00b2 = ${fx(cp, 2)}`] });
+          }
           prev = p;
         }
       }
@@ -119,7 +131,12 @@
       }
       for (let hr = -7; hr <= 7; hr++) {
         const s = sunDir(dec, hr * Math.PI / 12);
-        if (s[1] > 0) pts.push([C[0] + s[0] * RD, C[1] + s[1] * RD, C[2] + s[2] * RD, 1, hi]);
+        if (s[1] > 0) {
+          const q = [C[0] + s[0] * RD, C[1] + s[1] * RD, C[2] + s[2] * RD];
+          pts.push([...q, 1, hi]);
+          const alt = Math.asin(s[1]) * 180 / Math.PI, az = (Math.atan2(s[0], -s[2]) * 180 / Math.PI + 360) % 360;
+          probes.push({ p: q, rows: ['Sun path, Tainan 23.0\u00b0 N', `${['21 Jun', '20 Mar', '21 Dec'][d > 1 ? 0 : d < -1 ? 2 : 1]}, ${String(12 + hr).padStart(2, '0')}:00 solar time`, `altitude ${fx(alt)}\u00b0`, `azimuth ${Math.round(az)}\u00b0 ${compass(az)}`] });
+        }
       }
     }
     // analemma-like hour lines joining the arcs
@@ -134,6 +151,11 @@
     }
     // the sun position used for the facade study
     pts.push([C[0] + S[0] * RD, C[1] + S[1] * RD, C[2] + S[2] * RD, 1, 1]);
+    anchors.push({ p: [C[0] + S[0] * RD, C[1] + S[1] * RD, C[2] + S[2] * RD], label: 'Sun, 21 Jun 08:22' });
+    const pk = probes.filter(q => q.irr).sort((a, b) => b.irr - a.irr)[0];
+    if (pk) anchors.push({ p: pk.p, label: `Peak irradiance ${Math.round(pk.irr)} W/m\u00b2` });
+    const sep = probes.filter(q => q.cp !== undefined && q.p[0] > 0.3).sort((a, b) => a.cp - b.cp)[0];
+    if (sep) anchors.push({ p: sep.p, label: `Separation, Cp ${fx(sep.cp, 2)}` });
     // ground: horizon ring, polar rings and a compass rose of ticks
     const RN = small ? 8 : 14;
     for (let r = 1; r <= RN; r++) {
@@ -152,7 +174,8 @@
     const B = 0.9, cb = Math.cos(B), sb = Math.sin(B), rot = (x, z) => [x * cb - z * sb, x * sb + z * cb];
     for (const s of segs) { [s[0], s[2]] = rot(s[0], s[2]); [s[3], s[5]] = rot(s[3], s[5]); }
     for (const p of pts) [p[0], p[2]] = rot(p[0], p[2]);
-    return { segs, pts };
+    for (const q of probes.concat(anchors)) { const r = rot(q.p[0], q.p[2]); q.p = [r[0], q.p[1], r[1]]; }
+    return { segs, pts, probes, anchors };
   }
 
   // ---- 02 terrain ----------------------------------------------------------------------
@@ -186,31 +209,59 @@
       }
     }
     for (let j = 0; j <= NZ; j++) for (let i = 0; i <= NX; i++) { const p = grid[j][i]; pts.push([p[0], p[1], p[2], 0, 0]); }
+    // analysis: elevation in metres, slope and aspect, local Moran's I and Getis-Ord Gi*
+    const probes = [], anchors = [];
+    const M = y => (y - lo) / (hi - lo) * 420, cell = 2000 / ((NX) / (X1 - X0));        // 1 unit = 2 km
+    let mu = 0, nn = 0; for (const r of grid) for (const p of r) { mu += p[1]; nn++; } mu /= nn;
+    let sd = 0; for (const r of grid) for (const p of r) sd += (p[1] - mu) ** 2; sd = Math.sqrt(sd / nn);
+    const Z = (j, i) => (grid[j][i][1] - mu) / sd;
+    const gi = (j, i, r) => { let s = 0, c = 0; for (let b = -r; b <= r; b += 2) for (let a = -r; a <= r; a += 2) { const jj = j + b, ii = i + a; if (jj < 0 || ii < 0 || jj > NZ || ii > NX) continue; s += Z(jj, ii); c++; } return 2.4 * s / c; };
+    const lat = z => 22.9997 - z * 0.036, lon = x => 120.217 + x * 0.039;
+    const L15 = M(lo + (hi - lo) * 15 / LV);
+    let best = null, worst = null, iso = null;
+    for (let j = 3; j <= NZ - 3; j += 3) for (let i = 3; i <= NX - 3; i += 3) {
+      const p = grid[j][i];
+      const gx = (grid[j][i + 1][1] - grid[j][i - 1][1]) / 2, gz = (grid[j + 1][i][1] - grid[j - 1][i][1]) / 2;
+      const k = 420 / (hi - lo) / cell, slope = Math.atan(Math.hypot(gx, gz) * k) * 180 / Math.PI, asp = Math.atan2(-gx, gz) * 180 / Math.PI;
+      let lag = 0, c = 0; for (const [b, a] of [[-3, -3], [-3, 0], [-3, 3], [0, -3], [0, 3], [3, -3], [3, 0], [3, 3]]) { lag += Z(j + b, i + a); c++; } lag /= c;
+      const zi = Z(j, i), I = zi * lag, cls = zi > 0 ? (lag > 0 ? 'High\u2013High' : 'High\u2013Low') : (lag < 0 ? 'Low\u2013Low' : 'Low\u2013High');
+      const g = gi(j, i, 6);
+      probes.push({ p, rows: [`${fx(lat(p[2]), 4)}\u00b0 N, ${fx(lon(p[0]), 4)}\u00b0 E`, `elevation ${Math.round(M(p[1]))} m`, `slope ${fx(slope)}\u00b0, aspect ${compass(asp)}`, `local Moran's I ${fx(I, 2)}, ${cls}`, `Getis\u2013Ord Gi* z = ${fx(g, 2)}`] });
+      if (!best || g > best.g) best = { p, g };
+      if (!worst || g < worst.g) worst = { p, g };
+      if (p[0] > 0.6 && Math.abs(M(p[1]) - L15) < 6 && (!iso || p[2] > iso.p[2])) iso = { p };
+    }
+    anchors.push({ p: best.p, label: `Gi* hotspot, z = ${fx(best.g, 2)}` });
+    anchors.push({ p: worst.p, label: `Cold spot, z = ${fx(worst.g, 2)}` });
+    if (iso) anchors.push({ p: iso.p, label: `Isoline ${Math.round(L15)} m` });
     for (let j = 4; j < NZ - 3; j += 4) for (let i = 4; i < NX - 3; i += 4) {
       const p = grid[j][i];
       const peak = p[1] > grid[j][i - 4][1] && p[1] > grid[j][i + 4][1] && p[1] > grid[j - 4][i][1] && p[1] > grid[j + 4][i][1];
       if (peak || (i + j) % 16 === 0) pts.push([p[0], p[1], p[2], 1, peak ? 1 : 0]);
     }
-    return { segs, pts };
+    return { segs, pts, probes, anchors };
   }
 
   // ---- 03 neural: a rolled data manifold unrolled layer by layer, joined by fibre bundles ----
   function network() {
-    const segs = [], pts = [];
+    const segs = [], pts = [], probes = [], anchors = [];
     const L = 7, NT = small ? 22 : 40, NV = small ? 9 : 14;
     const X0 = -2.0, X1 = 1.55, W = 1.5, HV = 0.58;
     const TU = 0.62, TV = 0.18;          // the traced sample (t, v)
     const BETA = 0.9, cb = Math.cos(BETA), sb = Math.sin(BETA);
     // centre line of layer l as a function of arc length t in [0,1]
-    const curves = [];
+    const curves = [], bend = [], ratio = [];
     for (let l = 0; l < L; l++) {
       const s = l / (L - 1), c = 10.5 * Math.pow(1 - s, 1.35), M = 400, g0 = -0.75 + 0.5 * (1 - s);
+      bend.push(c);
       const P = [[0, 0]]; let x = 0, z = 0;
       for (let k = 1; k <= M; k++) { const t = (k - 0.5) / M, th = g0 + c * Math.pow(1 - t, 2); x += Math.sin(th) * W / M; z += Math.cos(th) * W / M; P.push([x, z]); }
       let mx = 0, mz = 0; for (const p of P) { mx += p[0]; mz += p[1]; } mx /= P.length; mz /= P.length;
+      ratio.push(W / Math.hypot(P[M][0] - P[0][0], P[M][1] - P[0][1]));
       curves.push(t => { const f = t * M, i = Math.min(M - 1, Math.floor(f)), r = f - i, a = P[i], b = P[i + 1]; return [a[0] + (b[0] - a[0]) * r - mx, a[1] + (b[1] - a[1]) * r - mz]; });
     }
     const size = [0.78, 0.86, 0.94, 1.0, 1.0, 1.0, 1.0];
+    const prune = Array.from({ length: L - 1 }, (_, l) => 0.22 + 0.5 * l / (L - 2));   // magnitude pruning, deeper layers sparser
     const place = (l, t, v) => {
       const s = l / (L - 1), q = curves[l](t), h = HV * size[l] * (1 + 0.14 * Math.sin(Math.PI * 2 * t + l * 0.8) * v);
       const X = X0 + (X1 - X0) * s + q[0], Y = -0.08 + v * h + 0.05 * Math.sin(4.2 * t + l * 0.9), Z = q[1];
@@ -226,6 +277,8 @@
         const edge = j === 0 || j === NV;
         if (!edge && i % 2) continue;
         pts.push([...rows[j][i], (edge && i % 10 === 0) ? 1 : 0, Math.exp(-d2 / 0.05) * 0.85]);
+        if (i % 4 === 0 && j % 2 === 0) probes.push({ p: rows[j][i], rows: [`Layer ${l + 1} of ${L}, unit (${i / 2}, ${j})`, `activation ${fx(Math.exp(-d2 / 0.05), 3)}`,
+          `curvature \u03ba ${fx(2 * bend[l] * (1 - t) / W, 2)}`, `geodesic / Euclidean ${fx(ratio[l], 2)}`, l ? `weights pruned ${Math.round(prune[l - 1] * 100)}%, |w| < \u03c4` : 'input manifold, unpruned'] });
       }
     }
     // fibre bundles carrying the same sample from layer to layer
@@ -242,18 +295,21 @@
     };
     const FT = small ? 6 : 3, FV = small ? 3 : 2;
     for (let l = 0; l < L - 1; l++) for (let j = 1; j < NV; j += FV) for (let i = 1; i < NT; i += FT) {
-      if (rnd() < 0.3) continue;
+      if (rnd() < prune[l]) continue;
       const t = (i + 0.5 * (j % 2)) / NT, v = -1 + 2 * j / NV;
       curve(place(l, t, v), place(l + 1, t, v), 0, 12);
     }
     for (let l = 0; l < L - 1; l++) curve(place(l, TU, TV), place(l + 1, TU, TV), 1, 24);
     for (let l = 0; l < L; l++) pts.push([...place(l, TU, TV), 1, 1]);
+    anchors.push({ p: place(0, 0.5, 1), label: `Rolled input, geodesic / Euclidean ${fx(ratio[0], 2)}` });
+    anchors.push({ p: place(3, TU, TV), label: 'Traced sample x\u2080' });
+    anchors.push({ p: place(L - 1, 0.1, 1), label: `Unrolled, ${fx(ratio[L - 1], 2)}, linearly separable` });
     for (let k = 0; k < (small ? 700 : 2000); k++) {
       const l = Math.floor(rnd() * (L - 1)), t = rnd(), v = rnd() * 2 - 1, f = rnd();
       const a = place(l, t, v), b = place(l + 1, t, v);
       pts.push([a[0] + (b[0] - a[0]) * f + gauss() * 0.015, a[1] + (b[1] - a[1]) * f + gauss() * 0.02, a[2] + (b[2] - a[2]) * f + gauss() * 0.015, 0, 0]);
     }
-    return { segs, pts };
+    return { segs, pts, probes, anchors };
   }
 
   // halve chains of connected segments until the model fits the shared budget
@@ -298,7 +354,10 @@
     pts.sort((a, b) => (a[0] + 0.35 * a[2]) - (b[0] + 0.35 * b[2]));
     return { segs: out, pts };
   }
-  const MODELS = [building(), terrain(), network()].map(resample);
+  const RAW = [terrain(), building(), network()];
+  const MODELS = RAW.map(resample);
+  const PROBES = RAW.map(r => { const q = r.probes, step = Math.max(1, Math.ceil(q.length / 2600)); return q.filter((_, i) => i % step === 0); });
+  const ANCHORS = RAW.map(r => r.anchors);
 
   // ---- buffers ----------------------------------------------------------------------------
   const LV = NS * 2;
@@ -409,9 +468,53 @@
     uniforms(LINES); gl.drawArrays(gl.LINES, 0, LV);
     uniforms(PTS); gl.drawArrays(gl.POINTS, 0, NP);
   }
+  // ---- analysis overlay: annotation tags and a probe that snaps to the nearest computed sample
+  const layer = hero.querySelector('.probe-layer');
+  const project = q => {
+    const Y = yaw + yawO, cy = Math.cos(Y), sy = Math.sin(Y), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const sc = narrow ? 0.5 : Math.min(1.02, 0.56 * (w / h) / 1.6 + 0.4), f = 1 / Math.tan(0.36);
+    let x = cy * q[0] + sy * q[2], y = q[1], z = -sy * q[0] + cy * q[2];
+    [y, z] = [cp * y - sp * z, sp * y + cp * z]; x *= sc; y *= sc; z *= sc;
+    const dist = 4.6 - z, X = (x * f / (w / h)) / dist + (narrow ? 0 : 0.2), Yc = (y * f) / dist + (narrow ? 0.42 : 0.22);
+    return [(X * 0.5 + 0.5) * w, (0.5 - Yc * 0.5) * h];
+  };
+  let tagEls = [], probeEl = null, probe = null, ptr = null, lastModel = -1;
+  if (layer) {
+    probeEl = document.createElement('div'); probeEl.className = 'probe';
+    probeEl.innerHTML = '<i class="probe-mark"></i><div class="probe-card"></div>';
+    layer.appendChild(probeEl);
+  }
+  function buildTags(m) {
+    if (!layer || m === lastModel) return;
+    lastModel = m; tagEls.forEach(t => t.remove());
+    tagEls = ANCHORS[m].map(a => { const el = document.createElement('div'); el.className = 'tag'; el.innerHTML = `<i></i><span>${a.label}</span>`; layer.appendChild(el); return el; });
+  }
+  function pick() {
+    if (!ptr || phase !== 'hold') { probe = null; return; }
+    let best = null, bd = (narrow ? 34 : 26) ** 2;
+    for (const q of PROBES[to]) { const s = project(q.p), d = (s[0] - ptr[0]) ** 2 + (s[1] - ptr[1]) ** 2; if (d < bd) { bd = d; best = q; } }
+    if (best !== probe) {
+      probe = best;
+      if (best) probeEl.querySelector('.probe-card').innerHTML = `<b>${best.rows[0]}</b>` + best.rows.slice(1).map(r => `<span>${r}</span>`).join('');
+    }
+  }
+  function overlay() {
+    if (!layer) return;
+    const show = phase === 'hold';
+    layer.classList.toggle('is-on', show);
+    buildTags(to);
+    ANCHORS[to].forEach((a, k) => { const s = project(a.p), el = tagEls[k]; if (!el) return; el.style.transform = `translate3d(${s[0].toFixed(1)}px, ${s[1].toFixed(1)}px, 0)`; el.classList.toggle('flip', s[0] > w * 0.78); });
+    layer.classList.toggle('probing', !!probe && show);
+    if (probe && show) {
+      const s = project(probe.p);
+      probeEl.style.transform = `translate3d(${s[0].toFixed(1)}px, ${s[1].toFixed(1)}px, 0)`;
+      probeEl.classList.toggle('flip', s[0] > w * 0.7); probeEl.classList.toggle('up', s[1] > h * 0.62);
+      probeEl.classList.add('is-on');
+    } else if (probeEl) probeEl.classList.remove('is-on');
+  }
   function setActive(i) { tabs.forEach((b, k) => b.setAttribute('aria-pressed', k === i ? 'true' : 'false')); }
   function go(i) { if (i === to && phase === 'hold') return; from = phase === 'morph' && p < 0.5 ? from : to; to = i; p = 0; phase = 'morph'; clock = 0; setActive(i); }
-  tabs.forEach((b, i) => b.addEventListener('click', () => { go(i); if (reduce) { p = 1; phase = 'hold'; from = to; draw(); } }));
+  tabs.forEach((b, i) => b.addEventListener('click', () => { go(i); probe = null; if (reduce) { p = 1; phase = 'hold'; from = to; draw(); overlay(); } }));
 
   function frame(now) {
     if (!running) return;
@@ -423,13 +526,13 @@
     tabs.forEach((b, k) => b.style.setProperty('--p', k === to ? pv.toFixed(3) : '0'));
     yaw = 0.6 + 0.32 * Math.sin(t * 0.09);
     yawO += (yawT - yawO) * 0.035; pitch += (pitchT - pitch) * 0.035;
-    draw();
+    draw(); overlay();
     requestAnimationFrame(frame);
   }
   const startLoop = () => { if (!running && visible && !document.hidden && !reduce) { running = true; last = 0; requestAnimationFrame(frame); } };
   const stop = () => { running = false; };
 
-  resize(); setActive(0); draw();
+  resize(); setActive(0); draw(); overlay();
   const ready = () => requestAnimationFrame(() => hero.classList.add('is-ready'));
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(ready);
   setTimeout(ready, 900);
@@ -437,15 +540,24 @@
   let rt, lastW = window.innerWidth;
   window.addEventListener('resize', () => {
     if (Math.abs(window.innerWidth - lastW) < 2) return;
-    lastW = window.innerWidth; clearTimeout(rt); rt = setTimeout(() => { resize(); draw(); }, 120);
+    lastW = window.innerWidth; clearTimeout(rt); rt = setTimeout(() => { resize(); draw(); overlay(); }, 120);
   });
+  const mainEl = hero.querySelector('.hero-main'), modesEl = hero.querySelector('.modes');
+  const inside = (el, x, y) => { if (!el) return false; const b = el.getBoundingClientRect(); return x > b.left - 8 && x < b.right + 8 && y > b.top - 8 && y < b.bottom + 8; };
+  const aim = ev => {
+    const r = hero.getBoundingClientRect();
+    ptr = (inside(mainEl, ev.clientX, ev.clientY) || inside(modesEl, ev.clientX, ev.clientY)) ? null : [ev.clientX - r.left, ev.clientY - r.top];
+    pick(); if (!running) overlay();
+  };
+  hero.addEventListener('pointerdown', ev => { if (ev.pointerType !== 'mouse') aim(ev); });
   hero.addEventListener('pointermove', ev => {
     if (ev.pointerType !== 'mouse') return;
+    aim(ev);
     const r = hero.getBoundingClientRect();
     yawT = ((ev.clientX - r.left) / r.width - 0.5) * 0.4;
     pitchT = 0.42 + ((ev.clientY - r.top) / r.height - 0.5) * 0.2;
   });
-  hero.addEventListener('pointerleave', () => { yawT = 0; pitchT = 0.42; });
+  hero.addEventListener('pointerleave', () => { yawT = 0; pitchT = 0.42; ptr = null; probe = null; if (!running) overlay(); });
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible ? startLoop() : stop(); }).observe(canvas);
   document.addEventListener('visibilitychange', () => (document.hidden ? stop() : startLoop()));
   startLoop();

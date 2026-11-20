@@ -52,10 +52,10 @@ def facade():
         # label and leader
         ly = y0 + fh / 2
         b.append(f'<line class="{"a-hi" if hi else "a-l1"} a-dash" x1="{x1 + 22}" y1="{ly:.1f}" x2="{x1 + 92}" y2="{ly:.1f}"/>')
-        b.append(_t(x1 + 104, ly + 5, f"F{f}", "a-t a-thi" if hi else "a-t"))
-        b.append(_t(x1 + 150, ly + 5, f"{v:.1f}%", "a-t a-thi" if hi else "a-t"))
-        b.append(f'<line class="a-l2" x1="{x1 + 214}" y1="{ly:.1f}" x2="{x1 + 214 + v * 0.9:.1f}" y2="{ly:.1f}"/>' if not hi else
-                 f'<line class="a-hi" x1="{x1 + 214}" y1="{ly:.1f}" x2="{x1 + 214 + v * 0.9:.1f}" y2="{ly:.1f}" stroke-width="3"/>')
+        b.append(_t(x1 + 102, ly + 8, f"F{f}", "a-t a-thi" if hi else "a-t"))
+        b.append(_t(x1 + 146, ly + 8, f"{v:.1f}%", "a-t a-thi" if hi else "a-t"))
+        b.append(f'<line class="a-l2" x1="{x1 + 246}" y1="{ly:.1f}" x2="{x1 + 246 + v * 0.7:.1f}" y2="{ly:.1f}"/>' if not hi else
+                 f'<line class="a-hi" x1="{x1 + 246}" y1="{ly:.1f}" x2="{x1 + 246 + v * 0.7:.1f}" y2="{ly:.1f}" stroke-width="3"/>')
     # piers and parapet
     for k in range(bays + 1):
         x = x0 + bw * k
@@ -68,7 +68,7 @@ def facade():
         b.append(f'<line class="a-l2" x1="{x0 - 66}" y1="{y}" x2="{x0 - 54}" y2="{y}"/>')
     b.append(_t(x0 - 74, (top + ground) / 2, "8 floors", "a-t", "end"))
     b.append(_t(70, 72, "South elevation, sample output", "a-t a-tcap"))
-    b.append(_t(70, 96, "glass area / wall area, per floor", "a-t"))
+    b.append(_t(70, 104, "glass area / wall area, per floor", "a-t"))
     return _svg("".join(b), "Elevation of an eight-storey facade; window widths drawn to each floor's window-to-wall ratio, from 39.4% on floor 1 to a peak of 65.3% on floor 6, highlighted")
 
 
@@ -98,7 +98,7 @@ def bloom():
         b.append(f'<circle class="{"a-dhi" if hi else "a-d"}" cx="{xb:.1f}" cy="{yb:.1f}" r="{2.6 if hi else 1.3}"/>')
     b.append(f'<circle class="a-d" cx="{cx}" cy="{cy}" r="3"/>')
     b.append(_t(70, 72, "One channel, illustrative", "a-t a-tcap"))
-    b.append(_t(70, 96, "ray length = views / channel median, log scale", "a-t"))
+    b.append(_t(70, 104, "ray length = views / channel median, log scale", "a-t"))
     b.append(_t(1130, 690, "outliers above 10x feed the niche score", "a-t a-thi", "end"))
     return _svg("".join(b), "Radial chart: each ray is one video, its length the video's views over the channel median on a log scale; the few rays past ten times the median are highlighted")
 
@@ -147,7 +147,7 @@ def spread_fan():
             else:
                 b.append(f'<circle class="a-ring" cx="{x:.1f}" cy="{y:.1f}" r="6"/>')
     b.append(_t(70, 72, "Spread z-score, schematic", "a-t a-tcap"))
-    b.append(_t(70, 96, "46 bootstrap paths behind the traded spread", "a-t"))
+    b.append(_t(70, 104, "46 bootstrap paths behind the traded spread", "a-t"))
     return _svg("".join(b), "Schematic of a pairs-trading spread with plus and minus two sigma entry bands, trade entries marked, and one entry vetoed by the model where the spread broke away")
 
 
