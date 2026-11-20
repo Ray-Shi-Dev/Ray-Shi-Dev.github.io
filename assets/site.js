@@ -1,25 +1,19 @@
-// Shared behaviour: nav border, hero reveal safety net, card spotlight,
+// Shared behaviour: nav border and paper tone, hero reveal safety net,
 // charts that draw when they scroll into view, and the case-study table of contents.
 (() => {
   const nav = document.querySelector('.nav');
-  const onScroll = () => nav && nav.classList.toggle('is-stuck', window.scrollY > 8);
+  const paper = document.querySelector('.paper');
+  const onScroll = () => {
+    if (!nav) return;
+    nav.classList.toggle('is-stuck', window.scrollY > 8);
+    if (paper) { const r = paper.getBoundingClientRect(), y = nav.offsetHeight / 2; nav.classList.toggle('on-paper', r.top <= y && r.bottom >= y); }
+  };
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
   setTimeout(() => { const h = document.querySelector('.hero'); if (h) h.classList.add('is-ready'); }, 2000);
 
-  // Spotlight follows the pointer on cards (pointer devices only).
-  if (window.matchMedia('(hover: hover)').matches) {
-    document.querySelectorAll('.spot').forEach(el => {
-      el.addEventListener('pointermove', ev => {
-        const r = el.getBoundingClientRect();
-        el.style.setProperty('--mx', `${ev.clientX - r.left}px`);
-        el.style.setProperty('--my', `${ev.clientY - r.top}px`);
-      });
-    });
-  }
-
   // Charts draw once when they become visible.
-  const charts = document.querySelectorAll('.viz, .tl, .ex');
+  const charts = document.querySelectorAll('.viz, .tl, .sw');
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(entries => entries.forEach(en => {
       if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
@@ -82,16 +76,3 @@
   }), { threshold: 0.6 });
   els.forEach(el => io.observe(el));
 })();
-
-// Specimen wall: a lens shows the original output under the pointer; a toggle shows all of it.
-document.querySelectorAll('.spec:not(.spec--render)').forEach(spec => {
-  const media = spec.querySelector('[data-lens]'), btn = spec.querySelector('.spec-toggle');
-  spec.addEventListener('pointermove', ev => {
-    const r = media.getBoundingClientRect();
-    if (ev.pointerType !== 'mouse' || ev.target.closest('.spec-toggle') || ev.clientY > r.bottom) { spec.classList.remove('is-lens'); return; }
-    media.style.setProperty('--lx', `${ev.clientX - r.left}px`); media.style.setProperty('--ly', `${ev.clientY - r.top}px`);
-    spec.classList.add('is-lens');
-  });
-  spec.addEventListener('pointerleave', () => spec.classList.remove('is-lens'));
-  btn.addEventListener('click', () => { const on = spec.classList.toggle('is-orig'); btn.setAttribute('aria-pressed', String(on)); });
-});
