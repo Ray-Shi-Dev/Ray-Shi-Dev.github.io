@@ -545,7 +545,10 @@
     const dist = 4.6 - z, X = (x * f / (w / h)) / dist + (narrow ? 0 : 0.2), Yc = (y * f) / dist + (narrow ? 0.42 : 0.22);
     return [(X * 0.5 + 0.5) * w, (0.5 - Yc * 0.5) * h];
   };
-  const IDLE = 4200, STEP = 3600;
+  // pacing: let the model be seen first, then show the tags, then (if nobody is interacting) tour them once
+  const IDLE = 4200, STEP = 3400, GAP = 1100, CALM_TAGS = 2.6, CALM_TOUR = 9, DWELL = 260;
+  const holdLen = () => CALM_TOUR + ANCHORS[to].length * (STEP + GAP) / 1000 + 1.2;
+  let hoverCand = null, hoverTimer = 0, tourDone = false, tourGapAt = 0;
   let tagEls = [], probeEl = null, cardEl = null, octx = null, ocv = null, lastModel = -1;
   let hover = null, pinned = null, tour = null, tourIdx = -1, tourAt = 0, lastInput = -1e9, ptr = null;
   let shown = null, shownAt = 0, det = null, touched = false;
@@ -576,7 +579,9 @@
     det = DETAIL[to] ? DETAIL[to](q) : null;
     const k = ANCHOR_PROBE[to].indexOf(q);
     const state = q === pinned ? (narrow ? 'Pinned. Tap empty space to release.' : 'Pinned. Click the model to release it.') : q === tour ? `Tour ${tourIdx + 1} of ${ANCHORS[to].length}. ${narrow ? 'Tap a point to take over.' : 'Move the pointer to take over.'}` : (narrow ? 'Tap again to pin.' : 'Click to pin this reading.');
-    cardEl.innerHTML = `<b>${k >= 0 ? `<em>${k + 1}</em>` : ''}${q.rows[0]}</b>` + q.rows.slice(1).map(r => `<span>${r}</span>`).join('') + (det && det.spark ? spark(det.spark) : '') + `<small>${state}</small>`;
+    const brief = q === tour;
+    cardEl.classList.toggle('brief', brief);
+    cardEl.innerHTML = `<b>${k >= 0 ? `<em>${k + 1}</em>` : ''}${q.rows[0]}</b>` + q.rows.slice(1, brief ? 3 : undefined).map(r => `<span>${r}</span>`).join('') + (!brief && det && det.spark ? spark(det.spark) : '') + `<small>${state}</small>`;
     tagEls.forEach((t, i) => t.classList.toggle('is-active', ANCHOR_PROBE[to][i] === q));
   }
   function buildTags(m) {
@@ -604,7 +609,9 @@
   }
   function stepTour(now) {
     if (reduce || pinned || phase !== 'hold' || now - lastInput < IDLE) { if (tour && now - lastInput < IDLE) { tour = null; refresh(); } return; }
-    if (!tour || now - tourAt > STEP) { tourIdx = (tourIdx + 1) % ANCHORS[to].length; tour = ANCHOR_PROBE[to][tourIdx]; tourAt = now; refresh(); }
+    if (tourDone || clock < CALM_TOUR) return;
+    if (tour && now - tourAt > STEP) { tour = null; tourGapAt = now; if (tourIdx >= ANCHORS[to].length - 1) tourDone = true; refresh(); return; }
+    if (!tour && now - tourGapAt > GAP) { tourIdx += 1; tour = ANCHOR_PROBE[to][tourIdx]; tourAt = now; refresh(); }
   }
   function drawPaths(now) {
     octx.setTransform(dpr, 0, 0, dpr, 0, 0); octx.clearRect(0, 0, w, h);
@@ -627,6 +634,8 @@
     const now = performance.now(), show = phase === 'hold';
     stepTour(now);
     if (show !== layer.classList.contains('is-on')) layer.classList.toggle('is-on', show);
+    const calm = show && clock < CALM_TAGS && !pinned && !shown;
+    if (calm !== layer.classList.contains('calm')) layer.classList.toggle('calm', calm);
     buildTags(to);
     ANCHORS[to].forEach((a, k) => { const s = project(a.p), el = tagEls[k]; if (!el) return; el.style.transform = `translate3d(${s[0].toFixed(1)}px, ${s[1].toFixed(1)}px, 0)`; el.classList.toggle('flip', s[0] > w * 0.74); });
     layer.classList.toggle('probing', !!shown && show);
@@ -644,15 +653,15 @@
     if (storyEl && tabs[i]) { storyEl.classList.remove('in'); void storyEl.offsetWidth; storyEl.textContent = tabs[i].dataset.story || ''; storyEl.classList.add('in'); }
   }
   function go(i) { if (i === to && phase === 'hold') return; from = phase === 'morph' && p < 0.5 ? from : to; to = i; p = 0; phase = 'morph'; clock = 0; setActive(i); }
-  tabs.forEach((b, i) => b.addEventListener('click', () => { go(i); pinned = hover = tour = null; tourIdx = -1; lastInput = performance.now() - IDLE + 1800; refresh(); if (reduce) { p = 1; phase = 'hold'; from = to; draw(); refresh(); overlay(); } }));
+  tabs.forEach((b, i) => b.addEventListener('click', () => { go(i); pinned = hover = hoverCand = tour = null; tourIdx = -1; tourDone = false; lastInput = performance.now() - IDLE + 1800; refresh(); if (reduce) { p = 1; phase = 'hold'; from = to; draw(); refresh(); overlay(); } }));
 
   function frame(now) {
     if (!running) return;
     const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
     t += dt; clock += dt;
     if (phase === 'morph') { p = Math.min(1, clock / MORPH); if (p >= 1) { phase = 'hold'; clock = 0; from = to; } }
-    else if (clock > HOLD + (pinned || performance.now() - lastInput < IDLE * 2 ? 1e9 : ANCHORS[to].length * STEP / 1000)) { pinned = hover = tour = null; tourIdx = -1; go((to + 1) % 3); }
-    const pv = phase === 'hold' ? Math.min(1, clock / HOLD) : 0;
+    else if (clock > holdLen() && !pinned && !shown && performance.now() - lastInput > IDLE * 2) { pinned = hover = hoverCand = tour = null; tourIdx = -1; tourDone = false; go((to + 1) % 3); }
+    const pv = phase === 'hold' ? Math.min(1, clock / holdLen()) : 0;
     tabs.forEach((b, k) => b.style.setProperty('--p', k === to ? pv.toFixed(3) : '0'));
     yaw = 0.6 + 0.32 * Math.sin(t * 0.09);
     yawO += (yawT - yawO) * 0.035; pitch += (pitchT - pitch) * 0.035;
@@ -677,8 +686,14 @@
   const aim = ev => {
     const r = hero.getBoundingClientRect();
     ptr = (inside(mainEl, ev.clientX, ev.clientY) || inside(modesEl, ev.clientX, ev.clientY) || ev.target.closest('.tag, a, button')) ? null : [ev.clientX - r.left, ev.clientY - r.top];
+    const prev = hover;
     pick();
-    if (hover) { lastInput = performance.now(); tour = null; if (!touched) { touched = true; } }
+    const cand = hover; hover = prev === cand ? prev : (ev.pointerType === 'mouse' ? null : cand);
+    if (cand) { lastInput = performance.now(); if (tour) { tour = null; tourGapAt = performance.now(); } touched = true; }
+    if (cand !== hoverCand) {
+      hoverCand = cand; clearTimeout(hoverTimer);
+      if (ev.pointerType === 'mouse') { hover = null; if (cand) hoverTimer = setTimeout(() => { if (hoverCand === cand) { hover = cand; hero.classList.add('is-probing'); refresh(); } }, DWELL); }
+    }
     hero.classList.toggle('is-probing', !!hover);
     refresh();
   };
@@ -686,7 +701,8 @@
   hero.addEventListener('click', ev => {
     if (ev.target.closest('a, button')) return;
     lastInput = performance.now();
-    if (hover) { pinned = pinned === hover ? null : hover; touched = true; tour = null; }
+    const target = hover || hoverCand;
+    if (target) { hover = target; pinned = pinned === target ? null : target; touched = true; tour = null; }
     else if (pinned) pinned = null;
     refresh();
   });
@@ -697,7 +713,7 @@
     yawT = ((ev.clientX - r.left) / r.width - 0.5) * 0.4;
     pitchT = 0.42 + ((ev.clientY - r.top) / r.height - 0.5) * 0.2;
   });
-  hero.addEventListener('pointerleave', ev => { if (ev.pointerType !== 'mouse') return; yawT = 0; pitchT = 0.42; ptr = null; hover = null; hero.classList.remove('is-probing'); refresh(); });
+  hero.addEventListener('pointerleave', ev => { if (ev.pointerType !== 'mouse') return; yawT = 0; pitchT = 0.42; ptr = null; hover = hoverCand = null; clearTimeout(hoverTimer); hero.classList.remove('is-probing'); refresh(); });
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible ? startLoop() : stop(); }).observe(canvas);
   document.addEventListener('visibilitychange', () => (document.hidden ? stop() : startLoop()));
   startLoop();
