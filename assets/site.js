@@ -19,7 +19,7 @@
   }
 
   // Charts draw once when they become visible.
-  const charts = document.querySelectorAll('.viz');
+  const charts = document.querySelectorAll('.viz, .tl');
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(entries => entries.forEach(en => {
       if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }

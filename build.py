@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION="13"
+VERSION="14"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -83,17 +83,14 @@ def nav(current="", clear=False):
 
 
 def contact_block():
-    return f"""<section class="container contact" id="contact" aria-labelledby="contact-title">
-  <div class="contact-card">
-    <span class="idx">Contact</span>
-    <h2 id="contact-title">Let's work on something with data.</h2>
-    <p>Open to conversations about data science, machine learning and software engineering roles.</p>
+    cta = f"""<p class="plate-text">Open to conversations about data science, machine learning and software engineering roles.</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="mailto:{SITE['email']}">Email me</a>
       <a class="btn" href="{SITE['linkedin']}" rel="me">LinkedIn {ICON_OUT}</a>
       <a class="btn" href="{SITE['github']}" rel="me">GitHub {ICON_OUT}</a>
-    </div>
-  </div>
+    </div>"""
+    return f"""<section class="contact" id="contact" aria-labelledby="contact-title">
+  {plate("moire", "04", "Contact", "contact-title", "Let's work on something with data.", "Interference. Two ring fields, one fixed on Tainan, one following you.", cta)}
 </section>"""
 
 
@@ -235,8 +232,13 @@ def timeline(items, now_first=False):
     out = ""
     for k, x in enumerate(items):
         tag = '<span class="now-tag">Now</span>' if now_first and k == 0 and "now" in x["years"] else ""
+        a, _, b = x["years"].partition("–")
+        s0 = float(a.strip()); s1 = 2026.95 if "now" in b else float(b.strip()) + 0.5
+        pa = (s0 + 0.5 - 2016) / 11 * 100 if "now" not in b else (2026.75 - 2016) / 11 * 100
+        pb = (s1 - 2016) / 11 * 100
+        span = f'<span class="tl-span{" is-now" if "now" in b else ""}" aria-hidden="true"><i style="left:{pa:.1f}%;width:{max(1.2, pb - pa):.1f}%"></i></span>'
         out += f"""<li class="tl">
-  <p class="tl-years">{e(x['years'])}</p>
+  <p class="tl-years">{e(x['years'])}{span}</p>
   <div><h4>{e(x['role'])}{tag}</h4><p class="tl-org">{e(x['org'])}</p></div>
   <p class="tl-text">{e(x['text'])}</p>
 </li>"""
@@ -278,6 +280,33 @@ def sub_head(n, title, lede, hid=""):
     return f"""<header class="sub-head"{f' id="{hid}"' if hid else ''}><p class="idx">{n}</p><h3 class="sub-title">{e(title)}</h3><p>{e(lede)}</p></header>"""
 
 
+# Career events for the Experience plate's year ruler: (start, end, label, current)
+CAREER = [
+    (2016.7, 2020.5, "Bachelor of Architecture, Kaohsiung", False),
+    (2020.7, 2023.5, "MSc Urban Planning, NCKU", False),
+    (2021.0, 2022.9, "Research assistant, urban planning, NCKU", False),
+    (2022.7, 2023.7, "MSc Urban Design, Manchester", False),
+    (2024.45, 2026.55, "Graduate consultant, Arup", False),
+    (2024.45, 2025.45, "AI trainer, Outlier", False),
+    (2026.75, 2027.0, "Research assistant, computer science, NCKU", True),
+]
+
+
+def plate(kind, n, label, hid, title, caption, extra="", data=""):
+    return f"""<div class="plate plate--{kind}" data-plate="{kind}"{data}>
+  <canvas class="plate-art" aria-hidden="true"></canvas>
+  <div class="container plate-inner">
+    <p class="idx plate-idx"><b>{n}</b> / {e(label)}</p>
+    <div class="plate-foot"><h2 id="{hid}" class="plate-title">{e(title)}</h2>{extra}</div>
+    <p class="plate-cap">{caption}</p>
+  </div>
+</div>"""
+
+
+def sec_intro(lede, link=""):
+    return f"""<div class="sec-intro">{f'<p class="sec-lede">{e(lede)}</p>' if lede else ''}{link}</div>"""
+
+
 def home():
     soft = [p for p in PROJECTS if p["group"] == "software"]
     sim = [p for p in PROJECTS if p["group"] == "simulation"]
@@ -294,6 +323,7 @@ def home():
     modes = "".join(f'<button class="morph-tab" type="button" aria-pressed="{"true" if i == 0 else "false"}"><span class="idx">{n}</span><span class="lab">{e(t)}</span></button>' for i, (n, t) in enumerate(MODES))
     bio = "".join(f"<p>{e(x)}</p>" for x in ABOUT["bio"])
     toolkit = "".join(f"""<li class="tk"><h4>{e(k)}</h4>{stack(v, 20)}</li>""" for k, v in TOOLKIT)
+    career = e(json.dumps([{"s": s, "e": en, "t": t, "now": now} for s, en, t, now in CAREER]))
 
     page = head("Ray Shi: data science and computational engineering", SITE["description"], "/", "/assets/og/home.jpg", jsonld())
     page += f"""
@@ -324,8 +354,10 @@ def home():
   <ul class="cred">{cred}</ul>
 </section>
 
-<section class="section container" id="work" aria-labelledby="work-title">
-  {sec_head("01", "Work", "work-title", g['software'][0], g['software'][1], f'<a class="btn sec-link" href="{SITE["github"]}">All repositories {ICON_OUT}</a>')}
+<section class="section" id="work" aria-labelledby="work-title">
+  {plate("ridge", "01", "Work", "work-title", g['software'][0], "Meter field. 72 hourly load traces over one year, one carrying an injected anomaly. Move across it to scan.")}
+  <div class="container">
+  {sec_intro(g['software'][1], f'<a class="btn sec-link" href="{SITE["github"]}">All repositories {ICON_OUT}</a>')}
   {featured_card(soft[0])}
   <ul class="bento">{''.join(bento_card(p, n) for n, p in enumerate(soft[1:], 2))}</ul>
 
@@ -334,14 +366,18 @@ def home():
 
   {sub_head("01.3", g['design'][0], g['design'][1])}
   <ul class="grid3">{''.join(mini_card(p) for p in des)}</ul>
+  </div>
 </section>
 
-<section class="section container" id="experience" aria-labelledby="exp-title">
-  {sec_head("02", "Experience", "exp-title", "From building physics to computer science.", "", '<a class="btn sec-link" href="/cv/">Full CV</a>')}
+<section class="section" id="experience" aria-labelledby="exp-title">
+  {plate("signal", "02", "Experience", "exp-title", "From building physics to computer science.", "Signal, 2016 to 2026. Continuous physical fields, quantised step by step into discrete states. Hover to read the year.", data=f" data-events='{career}'")}
+  <div class="container">
+  {sec_intro("Ten years across architecture, urban planning and building-energy consulting, now spent on computer science research at NCKU.", '<a class="btn sec-link" href="/cv/">Full CV</a>')}
   <div class="xp-group"><h3>Work</h3><ol>{timeline(EXPERIENCE, now_first=True)}</ol></div>
   <div class="xp-group"><h3>Education</h3><ol>{timeline(EDUCATION)}</ol></div>
   {sub_head("02.3", "Toolkit", "Languages, libraries and tools I use in practice.")}
   <ul class="toolkit">{toolkit}</ul>
+  </div>
 </section>
 
 <section class="section container" id="about" aria-labelledby="about-title">
@@ -362,6 +398,7 @@ def home():
 {footer()}
 <script src="/assets/site.js?v={VERSION}" defer></script>
 <script src="/assets/hero-gl.js?v={VERSION}" defer></script>
+<script src="/assets/plates.js?v={VERSION}" defer></script>
 </body></html>"""
     (ROOT / "index.html").write_text(page)
 
