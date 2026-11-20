@@ -7,9 +7,24 @@
   const canvas = document.querySelector('.gl');
   if (!canvas) return;
   const hero = canvas.closest('.hero');
+  // Low-end or data-saving devices get a still image; everyone else builds the scene once the page is idle,
+  // so the text and first paint never wait on geometry generation.
+  const conn = navigator.connection || {};
+  const weak = conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '') || (navigator.deviceMemory && navigator.deviceMemory <= 2);
+  const still = () => { canvas.classList.replace('gl', 'poster'); hero.classList.add('is-still', 'is-ready'); };
+  if (weak) { still(); return; }
+  const idle = window.requestIdleCallback || (f => setTimeout(f, 200));
+  idle(start, { timeout: 1200 });
+  const breathe = () => new Promise(r => idle(r, { timeout: 300 }));
+
+  async function start() {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const gl = canvas.getContext('webgl', { antialias: true, alpha: true, premultipliedAlpha: true });
-  if (!gl) { const s = document.createElement('script'); s.src = '/assets/terrain.js'; canvas.classList.replace('gl', 'terrain'); document.body.appendChild(s); return; }
+  if (!gl) { still(); return; }
+  // Without a GPU (software rasterisers) the scene would tie up the main thread: show the still instead.
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  const renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+  if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(renderer) && !/[?&]gl=1/.test(location.search)) { still(); return; }
 
   const small = window.matchMedia('(max-width: 860px)').matches;
   const NS = small ? 10000 : 26000;    // line segments per model
@@ -398,8 +413,9 @@
     pts.sort((a, b) => (a[0] + 0.35 * a[2]) - (b[0] + 0.35 * b[2]));
     return { segs: out, pts };
   }
-  const RAW = [terrain(), building(), network()];
-  const MODELS = RAW.map(resample);
+  // build each model in its own idle slice so the page stays responsive
+  const RAW = [], MODELS = [];
+  for (const make of [terrain, building, network]) { const r = make(); RAW.push(r); await breathe(); MODELS.push(resample(r)); await breathe(); }
   const PROBES = RAW.map(r => { const q = r.probes, step = Math.max(1, Math.ceil(q.length / 2600)); return q.filter((_, i) => i % step === 0); });
   const ANCHORS = RAW.map(r => r.anchors);
   const DETAIL = RAW.map(r => r.detail);
@@ -685,4 +701,5 @@
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible ? startLoop() : stop(); }).observe(canvas);
   document.addEventListener('visibilitychange', () => (document.hidden ? stop() : startLoop()));
   startLoop();
+  }
 })();
