@@ -82,3 +82,16 @@
   }), { threshold: 0.6 });
   els.forEach(el => io.observe(el));
 })();
+
+// Specimen wall: a lens shows the original output under the pointer; a toggle shows all of it.
+document.querySelectorAll('.spec:not(.spec--render)').forEach(spec => {
+  const media = spec.querySelector('[data-lens]'), btn = spec.querySelector('.spec-toggle');
+  spec.addEventListener('pointermove', ev => {
+    const r = media.getBoundingClientRect();
+    if (ev.pointerType !== 'mouse' || ev.target.closest('.spec-toggle') || ev.clientY > r.bottom) { spec.classList.remove('is-lens'); return; }
+    media.style.setProperty('--lx', `${ev.clientX - r.left}px`); media.style.setProperty('--ly', `${ev.clientY - r.top}px`);
+    spec.classList.add('is-lens');
+  });
+  spec.addEventListener('pointerleave', () => spec.classList.remove('is-lens'));
+  btn.addEventListener('click', () => { const on = spec.classList.toggle('is-orig'); btn.setAttribute('aria-pressed', String(on)); });
+});

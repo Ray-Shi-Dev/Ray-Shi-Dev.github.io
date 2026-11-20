@@ -26,3 +26,7 @@ Append to `VENTURES` in `content.py`:
 
 Add a dict to `PROJECTS` (copy an existing one), and put its images in
 `assets/img/<slug>/`: `cover.webp`, `cover-sm.webp`, and `sheet-01.webp` + `sheet-01-sm.webp` for each board.
+
+## Line studies for simulation work
+
+`tools/linework.py` traces the line studies shown on the home page wall (`assets/img/<slug>/line.webp`) from each project's `cover.webp`. Run `python3 tools/linework.py` after replacing a cover; it needs `opencv-python`, `scikit-image` and `numpy`.
