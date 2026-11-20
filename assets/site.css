@@ -131,7 +131,7 @@ main, .contact, .foot { position: relative; z-index: 1; }
 .js .hero.is-ready .probe-layer.is-on { opacity: 1; }
 .probe-canvas { position: absolute; inset: 0; }
 .hero.is-probing { cursor: crosshair; }
-.tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: .55rem; padding: 0; border: 0; background: none; color: inherit; white-space: nowrap; cursor: pointer; pointer-events: auto; will-change: transform; transition: opacity .3s; }
+.tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: .55rem; padding: 0; border: 0; background: none; color: inherit; white-space: nowrap; cursor: pointer; pointer-events: auto; will-change: transform; transition: opacity .9s; }
 .tag i { position: relative; display: grid; place-items: center; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 1px solid rgba(229, 169, 60, .95); border-radius: 50%; background: rgba(7, 7, 9, .8);
   font: 500 .6875rem/1 var(--mono); font-style: normal; color: var(--accent); flex: none; transition: background-color .25s, color .25s; }
 .tag i::after { content: ""; position: absolute; inset: -1px; border: 1px solid rgba(229, 169, 60, .8); border-radius: 50%; animation: tag-pulse 2.6s var(--ease) infinite; }
@@ -146,6 +146,8 @@ main, .contact, .foot { position: relative; z-index: 1; }
 .tag.flip { flex-direction: row-reverse; translate: -100% 0; }
 .tag.flip i { margin: -11px -11px 0 0; }
 .probe-layer.probing .tag:not(.is-active) { opacity: .28; }
+.probe-layer.calm .tag { opacity: 0; pointer-events: none; }
+.probe-card.brief { min-width: 13.5rem; }
 .probe { position: absolute; z-index: 2; left: 0; top: 0; opacity: 0; transition: opacity .2s; will-change: transform; pointer-events: none; }
 .probe.is-on { opacity: 1; }
 .probe-mark { position: absolute; left: -9px; top: -9px; width: 18px; height: 18px; border: 1px solid #F4F4F0; border-radius: 50%; }
@@ -176,7 +178,7 @@ main, .contact, .foot { position: relative; z-index: 1; }
 @keyframes story-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .hero-hint { position: absolute; z-index: 3; right: max(var(--pad), calc((100vw - var(--max)) / 2 + var(--pad))); top: 5.5rem; display: flex; align-items: center; gap: .7rem; max-width: 19rem;
   padding: .6rem .8rem; background: rgba(7, 7, 9, .7); border: 1px solid var(--line-2); font: 400 .6875rem/1.45 var(--mono); color: var(--text-2); pointer-events: none;
-  opacity: 0; transition: opacity .8s var(--ease) 1.4s; }
+  opacity: 0; transition: opacity .8s var(--ease) 3s; }
 .js .hero.is-ready .hero-hint { opacity: 1; }
 .js .hero.is-ready .hero-hint.is-quiet { opacity: 0; transition-delay: 0s; }
 @media (max-width: 860px) { .js .hero.is-ready:has(.probe-layer.probing) .hero-hint { opacity: 0; transition-delay: 0s; } }
