@@ -1,7 +1,7 @@
 // Plates: full-bleed line drawings that open each section, drawn in the same fine-line language
 // as the hero. Each plate draws in once when it scrolls into view and answers the pointer:
 //   ridge   96 hourly load traces stacked as a ridge field, one carrying an anomaly; a scanner reads the hour
-//   signal  smooth physical waves quantised into discrete steps across 2016 to 2026; hover reads the year
+//   braid   strands of practice carried through each role, 2016 to 2026, into one point; hover reads the year
 //   moire   two ring fields, one fixed on Tainan and one following the pointer, interfering live
 (() => {
   const plates = document.querySelectorAll('[data-plate]');
@@ -68,58 +68,79 @@
     },
   };
 
-  // ---- signal: analogue fields quantised into digital steps across the years --------------
-  const signal = {
+  // ---- braid: strands of practice carried through each role and drawn together ------------
+  const braid = {
     build(W, H, el) {
-      const narrow = W < 700, N = narrow ? 18 : 30;
+      const narrow = W < 700, N = narrow ? 90 : 170;
       const x0 = W * 0.04, x1 = W * 0.96, y0 = 2016, y1 = 2026.9;
-      const top = H * 0.24, bottom = H * 0.94, gap = (bottom - top) / N, dx = 2, K = Math.ceil(W / dx) + 1;
-      const step = narrow ? 14 : 20, hi = Math.round(N * 0.42);
-      const rows = [];
-      for (let i = 0; i < N; i++) {
-        const base = top + i * gap, ys = new Float32Array(K), lv = gap * 0.9;
-        const phys = x => gap * 2.4 * (0.62 * Math.sin(x * 0.0052 + i * 0.13) + 0.38 * Math.sin(x * 0.0123 + i * 0.21 + 1.3)) * (0.55 + 0.45 * n2(x * 0.0018, i * 0.06 + 4));
-        for (let k = 0; k < K; k++) {
-          const x = k * dx, q = smooth(W * 0.28, W * 0.82, x);
-          const xs = Math.floor(x / step) * step, d = Math.round(phys(xs) / lv) * lv;
-          ys[k] = base - (phys(x) * (1 - q) + d * q);
-        }
-        rows.push({ ys, hi: i === hi, a: 0.2 + 0.5 * (i / (N - 1)) });
-      }
-      let events = []; try { events = JSON.parse(el.dataset.events || '[]'); } catch (e) {}
       const X = yr => x0 + ((yr - y0) / (y1 - y0)) * (x1 - x0);
-      return { rows, dx, K, N, X, x0, x1, y0, y1, events, top, step, narrow };
+      const top = H * (narrow ? 0.2 : 0.24);
+      const Y = f => top + (H * (narrow ? 0.62 : 0.8) - top) * f;
+      // lanes: [centre, thickness, label]
+      const L = {
+        arch: [0.3, 0.42, 'Architecture'], plan: [0.72, 0.2, 'Planning and econometrics'], ud: [0.14, 0.16, 'Urban design'],
+        arup: [0.42, 0.16, 'Computational energy'], llm: [0.86, 0.07, 'LLM training'], cs: [0.5, 0.012, 'Computer science'], cord: [0.5, 0.004, ''],
+      };
+      const knots = [
+        [2014.6, () => 'arch'], [2016.4, () => 'arch'], [2019.9, () => 'arch'],
+        [2021.6, s => s < 0.58 ? 'plan' : 'ud'], [2023.1, s => s < 0.58 ? 'plan' : 'ud'],
+        [2024.7, s => s < 0.8 ? 'arup' : 'llm'], [2025.6, s => s < 0.8 ? 'arup' : 'arup'],
+        [2026.85, () => 'cs'], [2028.4, () => 'cord'],
+      ];
+      const strands = [];
+      for (let i = 0; i < N; i++) {
+        const s = rnd(), pts = [];
+        knots.forEach(([yr, lane], k) => {
+          const [c, th] = L[lane(s)];
+          const u = k % 2 ? rnd() : (i + 0.5) / N * 0.6 + rnd() * 0.4;
+          pts.push([X(yr) + (rnd() - 0.5) * W * 0.012 * (k > 1 && k < knots.length - 2 ? 1 : 0), Y(c + (u - 0.5) * th)]);
+        });
+        strands.push({ pts, a: 0.05 + rnd() * 0.13 });
+      }
+      // the traced strand: architecture, planning, Arup, computer science
+      const hi = { pts: knots.map(([yr, lane], k) => { const ln = ['arch', 'arch', 'arch', 'plan', 'plan', 'arup', 'arup', 'cs', 'cord'][k]; return [X(yr), Y(L[ln][0] + (k < 3 ? 0.05 : 0.01))]; }), hi: true };
+      strands.push(hi);
+      let events = []; try { events = JSON.parse(el.dataset.events || '[]'); } catch (e) {}
+      const tags = [['arch', 2016.6], ['ud', 2021.7], ['plan', 2021.7], ['arup', 2024.8], ['llm', 2024.8]].map(([k, yr]) => [L[k][2], X(yr), Y(L[k][0] - L[k][1] / 2) - 9]);
+      return { strands, X, x0, x1, y0, y1, events, top, narrow, tags, csx: X(2026.85), csy: Y(L.cs[0]) };
     },
     paint(ctx, m, W, H) {
-      // year ruler
-      const ry = m.top - (m.narrow ? 26 : 42);
+      const ry = m.top - (m.narrow ? 30 : 46);
       ctx.strokeStyle = INK(0.22); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(m.x0, ry + 0.5); ctx.lineTo(m.x1, ry + 0.5); ctx.stroke();
       for (let y = 2016; y <= 2026; y++) {
         const x = Math.round(m.X(y)) + 0.5;
         ctx.beginPath(); ctx.moveTo(x, ry - 5); ctx.lineTo(x, ry + 5); ctx.stroke();
         if (!m.narrow || y % 2 === 0) label(ctx, String(y), x, ry - 16, INK(0.55), 'center');
-        for (let q = 1; q < 4; q++) { const xq = Math.round(m.X(y + q / 4)) + 0.5; if (y < 2026 || q < 4) { ctx.beginPath(); ctx.moveTo(xq, ry - 2); ctx.lineTo(xq, ry + 2); ctx.stroke(); } }
+        if (y < 2026) for (let q = 1; q < 4; q++) { const xq = Math.round(m.X(y + q / 4)) + 0.5; ctx.beginPath(); ctx.moveTo(xq, ry - 2); ctx.lineTo(xq, ry + 2); ctx.stroke(); }
       }
       for (const ev of m.events) { const x = Math.round(m.X(ev.s)) + 0.5; ctx.fillStyle = ev.now ? AMBER : INK(0.7); ctx.fillRect(x - 2, ry - 2, 4, 4); }
-      ctx.lineJoin = 'miter';
-      for (const r of m.rows) {
-        ctx.beginPath(); ctx.moveTo(0, r.ys[0]);
-        for (let k = 1; k < m.K; k++) ctx.lineTo(k * m.dx, r.ys[k]);
-        ctx.strokeStyle = r.hi ? AMBER : INK(r.a); ctx.lineWidth = r.hi ? 1.3 : 1; ctx.stroke();
-      }
-      ctx.lineWidth = 1;
+      const curve = p => {
+        ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+        for (let k = 1; k < p.length; k++) { const a = p[k - 1], b = p[k], d = (b[0] - a[0]) * 0.45; ctx.bezierCurveTo(a[0] + d, a[1], b[0] - d, b[1], b[0], b[1]); }
+      };
+      ctx.globalCompositeOperation = 'lighter';
+      for (const s of m.strands) if (!s.hi) { curve(s.pts); ctx.strokeStyle = INK(s.a); ctx.lineWidth = 0.75; ctx.stroke(); }
+      ctx.globalCompositeOperation = 'source-over';
+      const h = m.strands[m.strands.length - 1];
+      curve(h.pts); ctx.strokeStyle = AMBER; ctx.lineWidth = 1.4; ctx.stroke(); ctx.lineWidth = 1;
+      for (const p of h.pts.slice(2, -2)) { ctx.fillStyle = BG; ctx.strokeStyle = AMBER; ctx.beginPath(); ctx.arc(p[0], p[1], 2.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+      ctx.fillStyle = AMBER; ctx.fillRect(m.csx - 3.5, m.csy - 3.5, 7, 7);
+      if (!m.narrow) for (const [t, x, y] of m.tags) label(ctx, t, x, y, INK(0.6));
+      label(ctx, 'Computer science', m.csx + 2, m.csy + 22, AMBER, 'right');
     },
     overlay(ctx, m, W, H, p) {
       if (!p) return;
       const x = Math.max(m.x0, Math.min(m.x1, p.x)), yr = m.y0 + ((x - m.x0) / (m.x1 - m.x0)) * (m.y1 - m.y0);
-      const k = Math.round(x / m.dx), ry = m.top - (m.narrow ? 26 : 42);
+      const ry = m.top - (m.narrow ? 30 : 46);
       ctx.strokeStyle = INK(0.35); ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, ry); ctx.lineTo(Math.round(x) + 0.5, H); ctx.stroke();
-      for (const r of m.rows) if (r.hi) { ctx.fillStyle = AMBER; ctx.fillRect(x - 2.5, r.ys[k] - 2.5, 5, 5); }
       const live = m.events.filter(ev => yr >= ev.s && yr < ev.e).sort((a, b) => b.s - a.s);
       const right = x < W - 300, tx = right ? x + 12 : x - 12, al = right ? 'left' : 'right';
-      label(ctx, String(Math.floor(yr)), tx, ry + 18, AMBER, al);
-      live.slice(0, 3).forEach((ev, i) => label(ctx, ev.t, tx, ry + 38 + i * 17, INK(0.82), al));
+      ctx.fillStyle = 'rgba(7,7,9,.82)';
+      const bw = Math.max(60, ...live.slice(0, 3).map(ev => ev.t.length * 6.7)) + 16, bh = 26 + Math.min(3, live.length) * 17;
+      ctx.fillRect(right ? tx - 8 : tx - bw + 8, ry + 8, bw, bh);
+      label(ctx, String(Math.floor(yr)), tx, ry + 20, AMBER, al);
+      live.slice(0, 3).forEach((ev, i) => label(ctx, ev.t, tx, ry + 40 + i * 17, INK(0.85), al));
     },
   };
 
@@ -128,19 +149,22 @@
     live: true,
     build(W, H) {
       const narrow = W < 700;
-      return { A: [W * (narrow ? 0.62 : 0.7), H * (narrow ? 0.34 : 0.46)], B: null, gap: narrow ? 7 : 8, narrow };
+      return { A: [W * (narrow ? 0.62 : 0.7), H * (narrow ? 0.34 : 0.46)], B: null, gap: narrow ? 8 : 10, narrow };
     },
     frame(ctx, m, W, H, p, t, reveal) {
-      const A = m.A, ease = reduce ? 1 : 0.07;
+      const A = m.A, ease = reduce ? 1 : 0.045;
       const target = p ? [p.x, p.y] : [A[0] - W * 0.16 * Math.cos(t * 0.11), A[1] + H * 0.2 * Math.sin(t * 0.15)];
       if (!m.B) m.B = target.slice();
       m.B[0] += (target[0] - m.B[0]) * ease; m.B[1] += (target[1] - m.B[1]) * ease;
-      const B = m.B, R = Math.hypot(W, H) * reveal;
+      const B = m.B, R = Math.hypot(W, H) * reveal, RB = Math.min(R, Math.max(W, H) * 0.42);
       ctx.lineWidth = 1;
-      for (const [c, a] of [[A, 0.26], [B, 0.2]]) {
-        ctx.strokeStyle = INK(a); ctx.beginPath();
-        for (let r = m.gap; r < R; r += m.gap) { ctx.moveTo(c[0] + r, c[1]); ctx.arc(c[0], c[1], r, 0, Math.PI * 2); }
-        ctx.stroke();
+      // fixed field: even and quiet, fading towards the edges
+      for (let r = m.gap; r < R; r += m.gap) {
+        ctx.strokeStyle = INK(0.17 * (1 - 0.55 * Math.min(1, r / (W * 0.8)))); ctx.beginPath(); ctx.arc(A[0], A[1], r, 0, Math.PI * 2); ctx.stroke();
+      }
+      // moving field: local to the pointer and fading out, so the fringes stay soft as it moves
+      for (let r = m.gap * 1.5; r < RB; r += m.gap * 1.5) {
+        const f = 1 - r / RB; ctx.strokeStyle = INK(0.16 * f * f); ctx.beginPath(); ctx.arc(B[0], B[1], r, 0, Math.PI * 2); ctx.stroke();
       }
       if (reveal < 1) return;
       const d = Math.hypot(B[0] - A[0], B[1] - A[1]);
@@ -153,7 +177,41 @@
     },
   };
 
-  const KINDS = { ridge, signal, moire };
+  // ---- molnar: loop to vector; random strokes aligned left to right, and under the pointer ---
+  const molnar = {
+    build(W, H) {
+      const narrow = W < 520, cols = narrow ? 30 : 58, padT = narrow ? 44 : 60, padB = narrow ? 40 : 54;
+      const cell = W / (cols + 2), rows = Math.max(6, Math.floor((H - padT - padB) / cell));
+      const oy = padT + (H - padT - padB - rows * cell) / 2, ox = cell;
+      const cells = [];
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+        const x = ox + (i + 0.5) * cell, y = oy + (j + 0.5) * cell, t = smooth(0.14, 0.86, x / W);
+        if (rnd() < 0.07 * (1 - t)) continue;
+        cells.push({ x, y, t, th: rnd() * Math.PI });
+      }
+      return { cells, len: cell * 0.86, narrow, padT, padB, R: narrow ? 70 : 120 };
+    },
+    frame(ctx, m, W, H, p, t, reveal) {
+      ctx.lineWidth = 1; ctx.lineCap = 'round';
+      const lim = W * reveal * 1.05, R2 = m.R * m.R;
+      for (const c of m.cells) {
+        if (c.x > lim) continue;
+        let a = c.th * (1 - c.t) + (Math.PI / 2) * c.t, f = 0;
+        if (p) { const d2 = (c.x - p.x) ** 2 + (c.y - p.y) ** 2; f = Math.exp(-d2 / R2); a = a * (1 - f) + (Math.PI / 2) * f; }
+        const dx = Math.cos(a) * m.len / 2, dy = Math.sin(a) * m.len / 2;
+        ctx.strokeStyle = f > 0.35 ? AMBER_A(0.4 + 0.6 * f) : INK(0.32 + 0.4 * c.t);
+        ctx.beginPath(); ctx.moveTo(c.x - dx, c.y - dy); ctx.lineTo(c.x + dx, c.y + dy); ctx.stroke();
+      }
+      if (reveal < 1) return;
+      const y0 = m.padT * 0.5, y1 = H - m.padB * 0.45;
+      label(ctx, m.narrow ? 'for i in buildings' : 'for i, idx in enumerate(building_id)', 18, y0, INK(0.55));
+      label(ctx, m.narrow ? '.transform(mean)' : "groupby('building_id').transform('mean')", W - 18, y0, INK(0.8), 'right');
+      label(ctx, '26.6 min', 18, y1, INK(0.55));
+      label(ctx, '7.3 min', W - 18, y1, AMBER, 'right');
+    },
+  };
+
+  const KINDS = { ridge, braid, moire, molnar };
 
   plates.forEach(el => {
     const kind = KINDS[el.dataset.plate], art = el.querySelector('.plate-art');
@@ -190,7 +248,7 @@
       const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now; t += dt;
       if (reveal < 1) reveal = Math.min(1, reveal + dt / 1.8);
       draw();
-      if (visible && !document.hidden && (reveal < 1 || (kind.live && !reduce))) raf = requestAnimationFrame(tick);
+      if (!document.hidden && (reveal < 1 || (visible && kind.live && !reduce))) raf = requestAnimationFrame(tick);
     }
     const kick = () => { if (!raf && started) { last = 0; raf = requestAnimationFrame(tick); } };
 
