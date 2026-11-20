@@ -15,7 +15,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION="18"
+VERSION="19"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -269,7 +269,11 @@ def jsonld():
     return f'<script type="application/ld+json">{json.dumps(data)}</script>\n'
 
 
-MODES = [("01", "Spatial Data Science"), ("02", "Physics-Based Simulation"), ("03", "Representation Learning")]
+MODES = [
+    ("01", "Spatial Data Science", "Is the surface clustered, and where? Every point is a 2 km cell tested with local Moran's I and Getis–Ord Gi*."),
+    ("02", "Physics-Based Simulation", "Wind and sun on a twisted tower in Tainan at the summer solstice: pressure from potential flow, irradiance from the sun path."),
+    ("03", "Representation Learning", "A network untangles a rolled manifold layer by layer, keeping only the strongest weights as it goes."),
+]
 
 
 def sec_head(n, label, title_id, title, lede="", link=""):
@@ -325,7 +329,7 @@ def home():
         ventures = '<p class="ventures-empty">Products I\'m building on my own will be listed here as they launch.</p>'
 
     cred = "".join(f'<li{" class=\"now\"" if k == 0 else ""}><span class="org">{e(a)}</span><span class="what">{e(b)}</span><span class="yrs">{e(c)}</span></li>' for k, (a, b, c) in enumerate(SITE["affiliations"]))
-    modes = "".join(f'<button class="morph-tab" type="button" aria-pressed="{"true" if i == 0 else "false"}"><span class="idx">{n}</span><span class="lab">{e(t)}</span></button>' for i, (n, t) in enumerate(MODES))
+    modes = "".join(f'<button class="morph-tab" type="button" aria-pressed="{"true" if i == 0 else "false"}" data-story="{e(s)}"><span class="idx">{n}</span><span class="lab">{e(t)}</span></button>' for i, (n, t, s) in enumerate(MODES))
     bio = "".join(f"<p>{e(x)}</p>" for x in ABOUT["bio"])
     toolkit = "".join(f"""<li class="tk"><h4>{e(k)}</h4>{stack(v, 20)}</li>""" for k, v in TOOLKIT)
     career = e(json.dumps([{"s": s, "e": en, "t": t, "now": now} for s, en, t, now in CAREER]))
@@ -338,6 +342,7 @@ def home():
 <section class="hero" aria-label="Introduction">
   <canvas class="gl" aria-hidden="true"></canvas>
   <div class="probe-layer" aria-hidden="true"></div>
+  <p class="hero-hint" aria-hidden="true"><i></i><span class="on-hover">The model is live. Hover any point for its reading, click to pin it, or open a numbered tag.</span><span class="on-touch">The model is live. Tap any point for its reading.</span></p>
   <div class="container hero-inner">
     <div class="hero-main">
       <h1 class="hero-title reveal">Ray Shi</h1>
@@ -351,6 +356,7 @@ def home():
       </div>
     </div>
     <div class="modes reveal">
+      <p class="story" aria-live="polite"></p>
       <div class="mode-list" role="group" aria-label="3D scene">{modes}</div>
       <p class="coord">22.9997° N, 120.2170° E</p>
     </div>

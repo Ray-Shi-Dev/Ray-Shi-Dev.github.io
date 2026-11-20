@@ -68,7 +68,7 @@
           const ex2 = Math.max(0, nx * S[0] + nz * S[2]) * (0.5 + 0.5 * f / nf);
           if (a > 0.3 && k % 4 === 0 && f % 2 === 0) {
             const cosi = Math.max(0, nx * S[0] + nz * S[2]) * Math.sqrt(1 - S[1] * S[1]), irr = 870 * cosi + 105;
-            probes.push({ p: p.slice(), irr, rows: ['Facade irradiance', `level ${f} of ${nf}, ${Math.round(f * 4)} m`, `normal azimuth ${Math.round(((Math.atan2(nx, -nz) * 180 / Math.PI) + 360) % 360)}\u00b0 ${compass(Math.atan2(nx, -nz) * 180 / Math.PI)}`,
+            probes.push({ p: p.slice(), irr, nx, nz, rows: ['Facade irradiance', `level ${f} of ${nf}, ${Math.round(f * 4)} m`, `normal azimuth ${Math.round(((Math.atan2(nx, -nz) * 180 / Math.PI) + 360) % 360)}\u00b0 ${compass(Math.atan2(nx, -nz) * 180 / Math.PI)}`,
               `direct + diffuse ${Math.round(irr)} W/m\u00b2`, '21 Jun, 08:22 solar time'] });
           }
           pts.push([p[0], p[1], p[2], major && k % 7 === 0 ? 1 : 0, Math.min(1, Math.pow(ex2, 1.6) * 1.2)]);
@@ -111,7 +111,7 @@
           if (n % 14 === (i * 3 + li) % 14) pts.push([p[0], p[1], p[2], 0, 0]);
           if (n % 5 === 0) {
             const v = vel(...p), U = Math.hypot(v[0], v[2]), cp = 1 - U * U;
-            probes.push({ p: p.slice(), cp, rows: ['Wind field, potential flow', `height ${Math.round((p[1] - Y0) / FH * 4)} m`, `U/U\u221e ${fx(U, 2)}`, `Cp = 1 \u2212 (U/U\u221e)\u00b2 = ${fx(cp, 2)}`] });
+            probes.push({ p: p.slice(), raw: p.slice(), cp, rows: ['Wind field, potential flow', `height ${Math.round((p[1] - Y0) / FH * 4)} m`, `U/U\u221e ${fx(U, 2)}`, `Cp = 1 \u2212 (U/U\u221e)\u00b2 = ${fx(cp, 2)}`] });
           }
           prev = p;
         }
@@ -135,7 +135,7 @@
           const q = [C[0] + s[0] * RD, C[1] + s[1] * RD, C[2] + s[2] * RD];
           pts.push([...q, 1, hi]);
           const alt = Math.asin(s[1]) * 180 / Math.PI, az = (Math.atan2(s[0], -s[2]) * 180 / Math.PI + 360) % 360;
-          probes.push({ p: q, rows: ['Sun path, Tainan 23.0\u00b0 N', `${['21 Jun', '20 Mar', '21 Dec'][d > 1 ? 0 : d < -1 ? 2 : 1]}, ${String(12 + hr).padStart(2, '0')}:00 solar time`, `altitude ${fx(alt)}\u00b0`, `azimuth ${Math.round(az)}\u00b0 ${compass(az)}`] });
+          probes.push({ p: q, dec: d, hr, rows: ['Sun path, Tainan 23.0\u00b0 N', `${['21 Jun', '20 Mar', '21 Dec'][d > 1 ? 0 : d < -1 ? 2 : 1]}, ${String(12 + hr).padStart(2, '0')}:00 solar time`, `altitude ${fx(alt)}\u00b0`, `azimuth ${Math.round(az)}\u00b0 ${compass(az)}`] });
         }
       }
     }
@@ -175,7 +175,34 @@
     for (const s of segs) { [s[0], s[2]] = rot(s[0], s[2]); [s[3], s[5]] = rot(s[3], s[5]); }
     for (const p of pts) [p[0], p[2]] = rot(p[0], p[2]);
     for (const q of probes.concat(anchors)) { const r = rot(q.p[0], q.p[2]); q.p = [r[0], q.p[1], r[1]]; }
-    return { segs, pts, probes, anchors };
+    const R3 = p => { const r = rot(p[0], p[2]); return [r[0], p[1], r[1]]; };
+    const SPr = R3([C[0] + S[0] * RD, C[1] + S[1] * RD, C[2] + S[2] * RD]);
+    const dayH = Array.from({ length: 57 }, (_, k) => -7 + k * 0.25);
+    const detail = q => {
+      if (q.raw) {
+        const path = [q.raw.slice()], U = []; let p = q.raw.slice();
+        for (let n = 0; n < 90 && p[0] < 2.3; n++) {
+          const v1 = vel(...p), m1 = Math.hypot(...v1) || 1;
+          const mid = [p[0] + v1[0] / m1 * 0.0225, p[1] + v1[1] / m1 * 0.0225, p[2] + v1[2] / m1 * 0.0225];
+          const v2 = vel(...mid), m2 = Math.hypot(...v2) || 1;
+          p = [p[0] + v2[0] / m2 * 0.045, p[1] + v2[1] / m2 * 0.0225, p[2] + v2[2] / m2 * 0.045];
+          if (tops.some(([cx, cz, R, top]) => p[1] < top + 0.02 && (p[0] - cx) ** 2 + (p[2] - cz) ** 2 < R * R * 0.8)) break;
+          path.push(p.slice()); U.push(Math.hypot(v2[0], v2[2]));
+        }
+        return { paths: [{ pts: path.map(R3), style: 'amber' }], spark: { vals: U, mark: 0, label: 'U/U\u221e downstream along this streamline', fmt: v => fx(v, 2) } };
+      }
+      if (q.irr) {
+        const vals = dayH.map(hh => { const s = sunDir(23.44 * Math.PI / 180, hh * Math.PI / 12); if (s[1] <= 0) return 0; const n = Math.hypot(s[0], s[1], s[2]); return 870 * Math.max(0, (q.nx * s[0] + q.nz * s[2]) / n) + 105; });
+        return { paths: [{ pts: [SPr, q.p], style: 'ray' }], dots: [SPr], spark: { vals, mark: Math.round((-3.63 + 7) * 4), label: 'W/m\u00b2 on this facade, 05:00 to 19:00, 21 Jun', fmt: v => Math.round(v) } };
+      }
+      if (q.dec !== undefined) {
+        const dec = q.dec * Math.PI / 180, arc = [], alt = [];
+        for (const hh of dayH) { const s = sunDir(dec, hh * Math.PI / 12); alt.push(Math.max(0, Math.asin(s[1]) * 180 / Math.PI)); if (s[1] > -0.005) arc.push(R3([C[0] + s[0] * RD, C[1] + s[1] * RD, C[2] + s[2] * RD])); }
+        return { paths: [{ pts: arc, style: 'amber' }, { pts: [q.p, R3([C[0], Y0, C[2]])], style: 'ray' }], spark: { vals: alt, mark: Math.round((q.hr + 7) * 4), label: 'solar altitude, 05:00 to 19:00', fmt: v => fx(v) + '\u00b0' } };
+      }
+      return null;
+    };
+    return { segs, pts, probes, anchors, detail };
   }
 
   // ---- 02 terrain ----------------------------------------------------------------------
@@ -226,7 +253,7 @@
       let lag = 0, c = 0; for (const [b, a] of [[-3, -3], [-3, 0], [-3, 3], [0, -3], [0, 3], [3, -3], [3, 0], [3, 3]]) { lag += Z(j + b, i + a); c++; } lag /= c;
       const zi = Z(j, i), I = zi * lag, cls = zi > 0 ? (lag > 0 ? 'High\u2013High' : 'High\u2013Low') : (lag < 0 ? 'Low\u2013Low' : 'Low\u2013High');
       const g = gi(j, i, 6);
-      probes.push({ p, rows: [`${fx(lat(p[2]), 4)}\u00b0 N, ${fx(lon(p[0]), 4)}\u00b0 E`, `elevation ${Math.round(M(p[1]))} m`, `slope ${fx(slope)}\u00b0, aspect ${compass(asp)}`, `local Moran's I ${fx(I, 2)}, ${cls}`, `Getis\u2013Ord Gi* z = ${fx(g, 2)}`] });
+      probes.push({ p, j, i, rows: [`${fx(lat(p[2]), 4)}\u00b0 N, ${fx(lon(p[0]), 4)}\u00b0 E`, `elevation ${Math.round(M(p[1]))} m`, `slope ${fx(slope)}\u00b0, aspect ${compass(asp)}`, `local Moran's I ${fx(I, 2)}, ${cls}`, `Getis\u2013Ord Gi* z = ${fx(g, 2)}`] });
       if (!best || g > best.g) best = { p, g };
       if (!worst || g < worst.g) worst = { p, g };
       if (p[0] > 0.6 && Math.abs(M(p[1]) - L15) < 6 && (!iso || p[2] > iso.p[2])) iso = { p };
@@ -234,12 +261,23 @@
     anchors.push({ p: best.p, label: `Gi* hotspot, z = ${fx(best.g, 2)}` });
     anchors.push({ p: worst.p, label: `Cold spot, z = ${fx(worst.g, 2)}` });
     if (iso) anchors.push({ p: iso.p, label: `Isoline ${Math.round(L15)} m` });
+    const cellM = 2000 * (X1 - X0) / NX;
+    const detail = q => {
+      const { j, i } = q, paths = [], ring = [];
+      for (const [b, a] of [[-3, -3], [-3, 0], [-3, 3], [0, -3], [0, 3], [3, -3], [3, 0], [3, 3]]) paths.push({ pts: [q.p, grid[j + b][i + a]], style: 'ink' });
+      for (let k = 0; k <= 48; k++) { const th = k / 48 * Math.PI * 2, jj = Math.max(0, Math.min(NZ, Math.round(j + 6 * Math.sin(th)))), ii = Math.max(0, Math.min(NX, Math.round(i + 6 * Math.cos(th)))); ring.push(grid[jj][ii]); }
+      paths.push({ pts: ring, style: 'amber' });
+      const a0 = Math.max(0, i - 24), a1 = Math.min(NX, i + 24), tr = [], vals = [];
+      for (let ii = a0; ii <= a1; ii++) { tr.push(grid[j][ii]); vals.push(M(grid[j][ii][1])); }
+      paths.push({ pts: tr, style: 'dash' });
+      return { paths, dots: [grid[j][a0], grid[j][a1]], spark: { vals, mark: i - a0, label: `transect W\u2013E, ${fx((a1 - a0) * cellM / 1000)} km, elevation`, fmt: v => Math.round(v) + ' m' } };
+    };
     for (let j = 4; j < NZ - 3; j += 4) for (let i = 4; i < NX - 3; i += 4) {
       const p = grid[j][i];
       const peak = p[1] > grid[j][i - 4][1] && p[1] > grid[j][i + 4][1] && p[1] > grid[j - 4][i][1] && p[1] > grid[j + 4][i][1];
       if (peak || (i + j) % 16 === 0) pts.push([p[0], p[1], p[2], 1, peak ? 1 : 0]);
     }
-    return { segs, pts, probes, anchors };
+    return { segs, pts, probes, anchors, detail };
   }
 
   // ---- 03 neural: a rolled data manifold unrolled layer by layer, joined by fibre bundles ----
@@ -277,7 +315,7 @@
         const edge = j === 0 || j === NV;
         if (!edge && i % 2) continue;
         pts.push([...rows[j][i], (edge && i % 10 === 0) ? 1 : 0, Math.exp(-d2 / 0.05) * 0.85]);
-        if (i % 4 === 0 && j % 2 === 0) probes.push({ p: rows[j][i], rows: [`Layer ${l + 1} of ${L}, unit (${i / 2}, ${j})`, `activation ${fx(Math.exp(-d2 / 0.05), 3)}`,
+        if (i % 4 === 0 && j % 2 === 0) probes.push({ p: rows[j][i], l, t, v, rows: [`Layer ${l + 1} of ${L}, unit (${i / 2}, ${j})`, `activation ${fx(Math.exp(-d2 / 0.05), 3)}`,
           `curvature \u03ba ${fx(2 * bend[l] * (1 - t) / W, 2)}`, `geodesic / Euclidean ${fx(ratio[l], 2)}`, l ? `weights pruned ${Math.round(prune[l - 1] * 100)}%, |w| < \u03c4` : 'input manifold, unpruned'] });
       }
     }
@@ -309,7 +347,13 @@
       const a = place(l, t, v), b = place(l + 1, t, v);
       pts.push([a[0] + (b[0] - a[0]) * f + gauss() * 0.015, a[1] + (b[1] - a[1]) * f + gauss() * 0.02, a[2] + (b[2] - a[2]) * f + gauss() * 0.015, 0, 0]);
     }
-    return { segs, pts, probes, anchors };
+    const bez = (a, b, n) => { const dx = [(b[0] - a[0]) * 0.5, 0, (b[2] - a[2]) * 0.5], out = []; for (let k = 0; k <= n; k++) { const t = k / n, mt = 1 - t; out.push([0, 1, 2].map(c => mt * mt * mt * a[c] + 3 * mt * mt * t * (a[c] + dx[c] * 0.9) + 3 * mt * t * t * (b[c] - dx[c] * 0.9) + t * t * t * b[c])); } return out; };
+    const detail = q => {
+      const path = [], nodes = [];
+      for (let k = 0; k < L; k++) { nodes.push(place(k, q.t, q.v)); if (k < L - 1) path.push(...bez(place(k, q.t, q.v), place(k + 1, q.t, q.v), 20)); }
+      return { paths: [{ pts: path, style: 'amber' }], dots: nodes, spark: { vals: ratio, mark: q.l, bars: true, label: 'geodesic / Euclidean by layer, 1.00 is flat', fmt: v => fx(v, 2) } };
+    };
+    return { segs, pts, probes, anchors, detail };
   }
 
   // halve chains of connected segments until the model fits the shared budget
@@ -358,6 +402,10 @@
   const MODELS = RAW.map(resample);
   const PROBES = RAW.map(r => { const q = r.probes, step = Math.max(1, Math.ceil(q.length / 2600)); return q.filter((_, i) => i % step === 0); });
   const ANCHORS = RAW.map(r => r.anchors);
+  const DETAIL = RAW.map(r => r.detail);
+  // the probe nearest to each anchor, so a tag or the tour can open a full reading
+  const near3 = (list, p) => { let b = null, bd = 1e9; for (const q of list) { const d = (q.p[0] - p[0]) ** 2 + (q.p[1] - p[1]) ** 2 + (q.p[2] - p[2]) ** 2; if (d < bd) { bd = d; b = q; } } return b; };
+  const ANCHOR_PROBE = RAW.map(r => r.anchors.map(a => near3(r.probes, a.p)));
 
   // ---- buffers ----------------------------------------------------------------------------
   const LV = NS * 2;
@@ -468,7 +516,10 @@
     uniforms(LINES); gl.drawArrays(gl.LINES, 0, LV);
     uniforms(PTS); gl.drawArrays(gl.POINTS, 0, NP);
   }
-  // ---- analysis overlay: annotation tags and a probe that snaps to the nearest computed sample
+  // ---- analysis overlay ----------------------------------------------------------------
+  // Numbered tags tell each model's story; a probe snaps to the nearest computed sample and draws
+  // the analysis behind its reading (spatial weights and Gi* window, a traced streamline or sun
+  // ray, one unit followed through every layer). Idle, the overlay tours the tags by itself.
   const layer = hero.querySelector('.probe-layer');
   const project = q => {
     const Y = yaw + yawO, cy = Math.cos(Y), sy = Math.sin(Y), cp = Math.cos(pitch), sp = Math.sin(pitch);
@@ -478,50 +529,113 @@
     const dist = 4.6 - z, X = (x * f / (w / h)) / dist + (narrow ? 0 : 0.2), Yc = (y * f) / dist + (narrow ? 0.42 : 0.22);
     return [(X * 0.5 + 0.5) * w, (0.5 - Yc * 0.5) * h];
   };
-  let tagEls = [], probeEl = null, probe = null, ptr = null, lastModel = -1;
+  const IDLE = 4200, STEP = 3600;
+  let tagEls = [], probeEl = null, cardEl = null, octx = null, ocv = null, lastModel = -1;
+  let hover = null, pinned = null, tour = null, tourIdx = -1, tourAt = 0, lastInput = -1e9, ptr = null;
+  let shown = null, shownAt = 0, det = null, touched = false;
+  const storyEl = hero.querySelector('.story'), hintEl = hero.querySelector('.hero-hint');
   if (layer) {
+    ocv = document.createElement('canvas'); ocv.className = 'probe-canvas'; layer.appendChild(ocv); octx = ocv.getContext('2d');
     probeEl = document.createElement('div'); probeEl.className = 'probe';
-    probeEl.innerHTML = '<i class="probe-mark"></i><div class="probe-card"></div>';
-    layer.appendChild(probeEl);
+    probeEl.innerHTML = '<i class="probe-mark"></i><div class="probe-card" role="status"></div>';
+    layer.appendChild(probeEl); cardEl = probeEl.querySelector('.probe-card');
+  }
+  const sizeOverlay = () => { if (!ocv) return; if (cardEl) { (narrow ? layer : probeEl).appendChild(cardEl); cardEl.classList.toggle('docked', narrow); } ocv.width = Math.round(w * dpr); ocv.height = Math.round(h * dpr); ocv.style.width = w + 'px'; ocv.style.height = h + 'px'; };
+  const spark = s => {
+    const W = 236, H = 44, n = s.vals.length, lo = Math.min(...s.vals), hi = Math.max(...s.vals), k = v => H - 4 - (hi - lo ? (v - lo) / (hi - lo) : 0.5) * (H - 10);
+    let body = '';
+    if (s.bars) {
+      const bw = W / n;
+      s.vals.forEach((v, i) => { const y = k(v); body += `<rect x="${(i * bw + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${(bw - 4).toFixed(1)}" height="${(H - y).toFixed(1)}" class="${i === s.mark ? 'sp-hi' : 'sp-bar'}"/>`; });
+    } else {
+      const X = i => (n > 1 ? i / (n - 1) : 0) * W;
+      body += `<polyline class="sp-line" points="${s.vals.map((v, i) => `${X(i).toFixed(1)},${k(v).toFixed(1)}`).join(' ')}"/>`;
+      const m = Math.max(0, Math.min(n - 1, s.mark));
+      body += `<line class="sp-rule" x1="${X(m).toFixed(1)}" x2="${X(m).toFixed(1)}" y1="0" y2="${H}"/><circle class="sp-dot" cx="${X(m).toFixed(1)}" cy="${k(s.vals[m]).toFixed(1)}" r="2.6"/>`;
+    }
+    const m = Math.max(0, Math.min(n - 1, s.mark));
+    return `<div class="probe-spark"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">${body}</svg><p><span>${s.label}</span><b>${s.fmt(s.vals[m])}</b></p></div>`;
+  };
+  function card(q) {
+    det = DETAIL[to] ? DETAIL[to](q) : null;
+    const k = ANCHOR_PROBE[to].indexOf(q);
+    const state = q === pinned ? (narrow ? 'Pinned. Tap empty space to release.' : 'Pinned. Click the model to release it.') : q === tour ? `Tour ${tourIdx + 1} of ${ANCHORS[to].length}. ${narrow ? 'Tap a point to take over.' : 'Move the pointer to take over.'}` : (narrow ? 'Tap again to pin.' : 'Click to pin this reading.');
+    cardEl.innerHTML = `<b>${k >= 0 ? `<em>${k + 1}</em>` : ''}${q.rows[0]}</b>` + q.rows.slice(1).map(r => `<span>${r}</span>`).join('') + (det && det.spark ? spark(det.spark) : '') + `<small>${state}</small>`;
+    tagEls.forEach((t, i) => t.classList.toggle('is-active', ANCHOR_PROBE[to][i] === q));
   }
   function buildTags(m) {
     if (!layer || m === lastModel) return;
     lastModel = m; tagEls.forEach(t => t.remove());
-    tagEls = ANCHORS[m].map(a => { const el = document.createElement('div'); el.className = 'tag'; el.innerHTML = `<i></i><span>${a.label}</span>`; layer.appendChild(el); return el; });
+    tagEls = ANCHORS[m].map((a, i) => {
+      const el = document.createElement('button'); el.type = 'button'; el.className = 'tag'; el.tabIndex = -1;
+      el.innerHTML = `<i>${i + 1}</i><span>${a.label}</span>`;
+      el.addEventListener('click', ev => { ev.stopPropagation(); const q = ANCHOR_PROBE[m][i]; pinned = pinned === q ? null : q; tour = null; lastInput = performance.now(); touched = true; refresh(); });
+      layer.appendChild(el); return el;
+    });
   }
   function pick() {
-    if (!ptr || phase !== 'hold') { probe = null; return; }
-    let best = null, bd = (narrow ? 34 : 26) ** 2;
-    for (const q of PROBES[to]) { const s = project(q.p), d = (s[0] - ptr[0]) ** 2 + (s[1] - ptr[1]) ** 2; if (d < bd) { bd = d; best = q; } }
-    if (best !== probe) {
-      probe = best;
-      if (best) probeEl.querySelector('.probe-card').innerHTML = `<b>${best.rows[0]}</b>` + best.rows.slice(1).map(r => `<span>${r}</span>`).join('');
+    hover = null;
+    if (!ptr || phase !== 'hold') return;
+    let bd = (narrow ? 56 : 26) ** 2;
+    for (const q of PROBES[to]) { const s = project(q.p), d = (s[0] - ptr[0]) ** 2 + (s[1] - ptr[1]) ** 2; if (d < bd) { bd = d; hover = q; } }
+  }
+  function refresh() {
+    const q = phase === 'hold' ? (pinned || hover || tour) : null;
+    if (q !== shown) { shown = q; shownAt = performance.now(); if (q) card(q); else det = null; }
+    else if (q && (q === pinned || q === tour)) card(q);
+    if (hintEl) hintEl.classList.toggle('is-quiet', touched);
+    if (!running) overlay();
+  }
+  function stepTour(now) {
+    if (reduce || pinned || phase !== 'hold' || now - lastInput < IDLE) { if (tour && now - lastInput < IDLE) { tour = null; refresh(); } return; }
+    if (!tour || now - tourAt > STEP) { tourIdx = (tourIdx + 1) % ANCHORS[to].length; tour = ANCHOR_PROBE[to][tourIdx]; tourAt = now; refresh(); }
+  }
+  function drawPaths(now) {
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0); octx.clearRect(0, 0, w, h);
+    if (!shown || !det) return;
+    const prog = reduce ? 1 : Math.min(1, (now - shownAt) / 700), e = 1 - Math.pow(1 - prog, 3);
+    for (const path of det.paths || []) {
+      const P = path.pts.map(project), n = Math.max(2, Math.ceil(P.length * e));
+      octx.beginPath(); octx.moveTo(P[0][0], P[0][1]);
+      for (let i = 1; i < n && i < P.length; i++) octx.lineTo(P[i][0], P[i][1]);
+      octx.setLineDash(path.style === 'dash' ? [3, 4] : path.style === 'ray' ? [2, 5] : []);
+      octx.lineWidth = path.style === 'amber' ? 1.6 : 1;
+      octx.strokeStyle = path.style === 'ink' ? 'rgba(244,244,240,.6)' : path.style === 'dash' ? 'rgba(244,244,240,.75)' : '#E5A93C';
+      octx.stroke();
     }
+    octx.setLineDash([]);
+    for (const d of det.dots || []) { const s = project(d); octx.fillStyle = '#070709'; octx.strokeStyle = '#E5A93C'; octx.lineWidth = 1.2; octx.beginPath(); octx.rect(s[0] - 3, s[1] - 3, 6, 6); octx.fill(); octx.stroke(); }
   }
   function overlay() {
     if (!layer) return;
-    const show = phase === 'hold';
-    layer.classList.toggle('is-on', show);
+    const now = performance.now(), show = phase === 'hold';
+    stepTour(now);
+    if (show !== layer.classList.contains('is-on')) layer.classList.toggle('is-on', show);
     buildTags(to);
-    ANCHORS[to].forEach((a, k) => { const s = project(a.p), el = tagEls[k]; if (!el) return; el.style.transform = `translate3d(${s[0].toFixed(1)}px, ${s[1].toFixed(1)}px, 0)`; el.classList.toggle('flip', s[0] > w * 0.78); });
-    layer.classList.toggle('probing', !!probe && show);
-    if (probe && show) {
-      const s = project(probe.p);
+    ANCHORS[to].forEach((a, k) => { const s = project(a.p), el = tagEls[k]; if (!el) return; el.style.transform = `translate3d(${s[0].toFixed(1)}px, ${s[1].toFixed(1)}px, 0)`; el.classList.toggle('flip', s[0] > w * 0.74); });
+    layer.classList.toggle('probing', !!shown && show);
+    if (shown && show) {
+      const s = project(shown.p);
       probeEl.style.transform = `translate3d(${s[0].toFixed(1)}px, ${s[1].toFixed(1)}px, 0)`;
-      probeEl.classList.toggle('flip', s[0] > w * 0.7); probeEl.classList.toggle('up', s[1] > h * 0.62);
+      probeEl.classList.toggle('flip', s[0] > w * 0.62); probeEl.classList.toggle('up', s[1] > h * 0.42);
+      probeEl.classList.toggle('pinned', shown === pinned);
       probeEl.classList.add('is-on');
     } else if (probeEl) probeEl.classList.remove('is-on');
+    drawPaths(now);
   }
-  function setActive(i) { tabs.forEach((b, k) => b.setAttribute('aria-pressed', k === i ? 'true' : 'false')); }
+  function setActive(i) {
+    tabs.forEach((b, k) => b.setAttribute('aria-pressed', k === i ? 'true' : 'false'));
+    if (storyEl && tabs[i]) { storyEl.classList.remove('in'); void storyEl.offsetWidth; storyEl.textContent = tabs[i].dataset.story || ''; storyEl.classList.add('in'); }
+  }
   function go(i) { if (i === to && phase === 'hold') return; from = phase === 'morph' && p < 0.5 ? from : to; to = i; p = 0; phase = 'morph'; clock = 0; setActive(i); }
-  tabs.forEach((b, i) => b.addEventListener('click', () => { go(i); probe = null; if (reduce) { p = 1; phase = 'hold'; from = to; draw(); overlay(); } }));
+  tabs.forEach((b, i) => b.addEventListener('click', () => { go(i); pinned = hover = tour = null; tourIdx = -1; lastInput = performance.now() - IDLE + 1800; refresh(); if (reduce) { p = 1; phase = 'hold'; from = to; draw(); refresh(); overlay(); } }));
 
   function frame(now) {
     if (!running) return;
     const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016); last = now;
     t += dt; clock += dt;
     if (phase === 'morph') { p = Math.min(1, clock / MORPH); if (p >= 1) { phase = 'hold'; clock = 0; from = to; } }
-    else if (clock > HOLD) go((to + 1) % 3);
+    else if (clock > HOLD + (pinned || performance.now() - lastInput < IDLE * 2 ? 1e9 : ANCHORS[to].length * STEP / 1000)) { pinned = hover = tour = null; tourIdx = -1; go((to + 1) % 3); }
     const pv = phase === 'hold' ? Math.min(1, clock / HOLD) : 0;
     tabs.forEach((b, k) => b.style.setProperty('--p', k === to ? pv.toFixed(3) : '0'));
     yaw = 0.6 + 0.32 * Math.sin(t * 0.09);
@@ -532,7 +646,7 @@
   const startLoop = () => { if (!running && visible && !document.hidden && !reduce) { running = true; last = 0; requestAnimationFrame(frame); } };
   const stop = () => { running = false; };
 
-  resize(); setActive(0); draw(); overlay();
+  resize(); sizeOverlay(); setActive(0); draw(); overlay();
   const ready = () => requestAnimationFrame(() => hero.classList.add('is-ready'));
   (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(ready);
   setTimeout(ready, 900);
@@ -540,16 +654,26 @@
   let rt, lastW = window.innerWidth;
   window.addEventListener('resize', () => {
     if (Math.abs(window.innerWidth - lastW) < 2) return;
-    lastW = window.innerWidth; clearTimeout(rt); rt = setTimeout(() => { resize(); draw(); overlay(); }, 120);
+    lastW = window.innerWidth; clearTimeout(rt); rt = setTimeout(() => { resize(); sizeOverlay(); draw(); overlay(); }, 120);
   });
   const mainEl = hero.querySelector('.hero-main'), modesEl = hero.querySelector('.modes');
   const inside = (el, x, y) => { if (!el) return false; const b = el.getBoundingClientRect(); return x > b.left - 8 && x < b.right + 8 && y > b.top - 8 && y < b.bottom + 8; };
   const aim = ev => {
     const r = hero.getBoundingClientRect();
-    ptr = (inside(mainEl, ev.clientX, ev.clientY) || inside(modesEl, ev.clientX, ev.clientY)) ? null : [ev.clientX - r.left, ev.clientY - r.top];
-    pick(); if (!running) overlay();
+    ptr = (inside(mainEl, ev.clientX, ev.clientY) || inside(modesEl, ev.clientX, ev.clientY) || ev.target.closest('.tag, a, button')) ? null : [ev.clientX - r.left, ev.clientY - r.top];
+    pick();
+    if (hover) { lastInput = performance.now(); tour = null; if (!touched) { touched = true; } }
+    hero.classList.toggle('is-probing', !!hover);
+    refresh();
   };
   hero.addEventListener('pointerdown', ev => { if (ev.pointerType !== 'mouse') aim(ev); });
+  hero.addEventListener('click', ev => {
+    if (ev.target.closest('a, button')) return;
+    lastInput = performance.now();
+    if (hover) { pinned = pinned === hover ? null : hover; touched = true; tour = null; }
+    else if (pinned) pinned = null;
+    refresh();
+  });
   hero.addEventListener('pointermove', ev => {
     if (ev.pointerType !== 'mouse') return;
     aim(ev);
@@ -557,7 +681,7 @@
     yawT = ((ev.clientX - r.left) / r.width - 0.5) * 0.4;
     pitchT = 0.42 + ((ev.clientY - r.top) / r.height - 0.5) * 0.2;
   });
-  hero.addEventListener('pointerleave', () => { yawT = 0; pitchT = 0.42; ptr = null; probe = null; if (!running) overlay(); });
+  hero.addEventListener('pointerleave', ev => { if (ev.pointerType !== 'mouse') return; yawT = 0; pitchT = 0.42; ptr = null; hover = null; hero.classList.remove('is-probing'); refresh(); });
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; visible ? startLoop() : stop(); }).observe(canvas);
   document.addEventListener('visibilitychange', () => (document.hidden ? stop() : startLoop()));
   startLoop();
