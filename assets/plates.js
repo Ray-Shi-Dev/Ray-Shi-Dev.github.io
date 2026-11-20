@@ -180,7 +180,7 @@
   // ---- molnar: loop to vector; random strokes aligned left to right, and under the pointer ---
   const molnar = {
     build(W, H) {
-      const narrow = W < 520, cols = narrow ? 30 : 58, padT = narrow ? 44 : 60, padB = narrow ? 40 : 54;
+      const narrow = W < 520, cols = Math.max(22, Math.round(W / (narrow ? 13 : 15))), padT = narrow ? 44 : 60, padB = narrow ? 40 : 54;
       const cell = W / (cols + 2), rows = Math.max(6, Math.floor((H - padT - padB) / cell));
       const oy = padT + (H - padT - padB - rows * cell) / 2, ox = cell;
       const cells = [];
@@ -199,7 +199,7 @@
         let a = c.th * (1 - c.t) + (Math.PI / 2) * c.t, f = 0;
         if (p) { const d2 = (c.x - p.x) ** 2 + (c.y - p.y) ** 2; f = Math.exp(-d2 / R2); a = a * (1 - f) + (Math.PI / 2) * f; }
         const dx = Math.cos(a) * m.len / 2, dy = Math.sin(a) * m.len / 2;
-        ctx.strokeStyle = f > 0.35 ? AMBER_A(0.4 + 0.6 * f) : INK(0.32 + 0.4 * c.t);
+        ctx.lineWidth = 1.15; ctx.strokeStyle = f > 0.35 ? AMBER_A(0.4 + 0.6 * f) : INK(0.4 + 0.42 * c.t);
         ctx.beginPath(); ctx.moveTo(c.x - dx, c.y - dy); ctx.lineTo(c.x + dx, c.y + dy); ctx.stroke();
       }
       if (reveal < 1) return;

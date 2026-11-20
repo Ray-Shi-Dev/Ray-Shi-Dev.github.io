@@ -15,7 +15,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION="15"
+VERSION="16"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -225,20 +225,43 @@ def bento_card(p, n):
 </div></li>"""
 
 
-def gallery_item(p, n, variant):
+FOCUS = {"sme-spatial-analysis-taipei": "50% 74%", "remote-sensing-west-coast": "50% 38%", "arup-energy-climate-modelling": "50% 30%"}
+
+
+def specimen(p, n):
     loc = dict(p["facts"]).get("Location", "")
-    sizes = "(max-width: 860px) 100vw, 66vw" if variant in "ab" else "(max-width: 860px) 100vw, 50vw"
-    return f"""<article class="gi gi--{variant}"><a href="/work/{p['slug']}/">
-  <figure class="gi-fig">{img_tag(p['slug'], p['cover_alt'], sizes=sizes)}<span class="gi-n">Fig. {n:02d}</span></figure>
-  <div class="gi-text"><p class="gi-meta">{e(loc)}</p><h3>{e(p['title'])}</h3><p class="gi-sum">{e(p['summary'])}</p>
-  {stack(p['tags'])}<span class="ex-more">View the project {ICON_OUT}</span></div>
-</a></article>"""
+    pos = FOCUS.get(p["slug"], "50% 50%")
+    big, sm = f"/assets/img/{p['slug']}/cover.webp", f"/assets/img/{p['slug']}/cover-sm.webp"
+    lb, ls = f"/assets/img/{p['slug']}/line.webp", f"/assets/img/{p['slug']}/line-sm.webp"
+    w, h = size(big)
+    sizes = "(max-width: 860px) 100vw, 50vw"
+    return f"""<article class="spec" style="--pos:{pos}">
+  <div class="spec-plate" data-lens>
+    <img class="spec-line" src="{ls}" srcset="{ls} {w // 2}w, {lb} {w}w" sizes="{sizes}" width="{w}" height="{h}" alt="" loading="lazy" decoding="async">
+    <img class="spec-orig" src="{sm}" srcset="{sm} {size(sm)[0]}w, {big} {w}w" sizes="{sizes}" width="{w}" height="{h}" alt="{e(p['cover_alt'])}" loading="lazy" decoding="async">
+    <span class="spec-ring" aria-hidden="true"></span>
+    <p class="spec-top"><span class="gi-n">Fig. {n:02d}</span><span class="spec-loc">{e(loc)}</span></p>
+    <button class="spec-toggle" type="button" aria-pressed="false">Original output</button>
+  </div>
+  <div class="spec-cap">
+    <h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
+    <div><p class="spec-sum">{e(p['summary'])}</p>{stack(p['tags'])}</div>
+  </div>
+</article>"""
+
+
+def render_spec(p, n):
+    loc = dict(p["facts"]).get("Location", "")
+    return f"""<article class="spec spec--render">
+  <div class="spec-plate">{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 860px) 100vw, 33vw")}
+    <p class="spec-top"><span class="gi-n">Fig. {n:02d}</span></p>
+  </div>
+  <div class="spec-cap"><p class="spec-loc">{e(loc)}</p><h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3></div>
+</article>"""
 
 
 def gallery(items, start):
-    out = gallery_item(items[0], start, "a") + gallery_item(items[1], start + 1, "b")
-    out += '<div class="gi-pair">' + "".join(gallery_item(p, start + 2 + k, "c") for k, p in enumerate(items[2:4])) + "</div>"
-    return f'<div class="gallery">{out}</div>'
+    return '<div class="wall">' + "".join(specimen(p, start + k) for k, p in enumerate(items)) + "</div>"
 
 
 def mini_card(p, n):
@@ -381,12 +404,13 @@ def home():
   {featured_card(soft[0])}
   <ol class="catalogue">{''.join(bento_card(p, n) for n, p in enumerate(soft[1:], 2))}</ol>
 
-  {sub_head("01.2", g['simulation'][0], g['simulation'][1])}
-  {gallery(sim, 5)}
-
-  {sub_head("01.3", g['design'][0], g['design'][1])}
-  <ul class="grid3">{''.join(mini_card(p, 9 + k) for k, p in enumerate(des))}</ul>
+  {sub_head("01.2", g['simulation'][0], "Line studies traced from each project's own output. Move over a plate to see the original through the lens.")}
   </div>
+  {gallery(sim, 5)}
+  <div class="container">
+  {sub_head("01.3", g['design'][0], g['design'][1])}
+  </div>
+  <div class="wall wall--3">{''.join(render_spec(p, 9 + k) for k, p in enumerate(des))}</div>
 </section>
 
 <section class="section" id="experience" aria-labelledby="exp-title">
