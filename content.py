@@ -11,8 +11,8 @@ SITE = {
     "github": "https://github.com/Ray-Shi-Dev",
     "status": "Research Assistant, NCKU NetDB Lab",
     "hero_sub": "Data scientist for the physical world. I turn spatial, time-series and simulation data into fast, reliable machine-learning pipelines.",
-    "open_to": "Open to data science and ML engineering roles. Based in Tainan, Taiwan.",
-    "proof": [("72%", "faster anomaly-detection pipeline"), ("1.4 GB", "lower peak memory"), ("2 yrs", "energy simulation at Arup")],
+    "open_to": "Open to data science and ML engineering roles",
+    "proof": [("72%", "faster ML pipeline"), ("1.4 GB", "less peak memory"), ("2 yrs", "energy simulation at Arup")],
     # Paste the content value of Google Search Console's HTML-tag verification here (URL-prefix property).
     "google_site_verification": "",
     # GoatCounter site code, e.g. "rayshi" for rayshi.goatcounter.com. Empty means no analytics script.
