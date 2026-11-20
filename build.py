@@ -5,6 +5,7 @@ from PIL import Image
 from content import (SITE, GROUPS, PROJECTS, VENTURES, ABOUT, EXPERIENCE,
                      EDUCATION, TOOLKIT, CREDENTIALS, SERVICE)
 from viz import VIZ, bench, DEFS
+from art import ART, CAPTIONS
 from cases import CASES
 from pygments import highlight
 from pygments.lexers import PythonLexer
@@ -14,7 +15,7 @@ ROOT = Path(__file__).parent
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION="14"
+VERSION="15"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -180,51 +181,70 @@ def diff_switch(steps):
 </figure>"""
 
 
-def featured_card(p):
+def ex_text(p, n, lead=False):
     f = dict(p["facts"])
+    return f"""<div class="ex-text">
+    <p class="ex-top"><span class="idx"><b>{n:02d}</b>{' / Featured case study' if lead else ''}</span><span class="idx">{e(p['repo'])}</span></p>
+    <h3><a href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
+    <p class="ex-kind">{e(f['Type'])}</p>
+    <p class="ex-sum">{e(p['summary'])}</p>
+    {stack(f['Stack'], 7)}
+    <a class="ex-more" href="/work/{p['slug']}/" tabindex="-1" aria-hidden="true">Read the case study {ICON_OUT}</a>
+  </div>"""
+
+
+def ex_art(p, n, inner, live=False):
+    attr = ' data-plate="molnar"' if live else ''
+    return f"""<figure class="ex-art">
+    <div class="ex-frame"{attr}>{inner}</div>
+    <figcaption><span class="idx">Fig. {n:02d}</span><span>{e(CAPTIONS[p['slug']])}</span></figcaption>
+  </figure>"""
+
+
+def featured_card(p):
     c = CASES[p["slug"]]
     diff_steps = [x for x in c["approach"] if x.get("before")]
     metrics = "".join(f'<div><dt>{e(lab)}</dt><dd{count_attr(val)}>{e(val)}</dd></div>' for val, lab in c["metrics"])
-    return f"""<article class="feature spot">
-  <div class="feature-text">
-    <p class="feature-top"><span class="idx"><b>01</b> / Featured case study</span><span class="idx">{e(p['repo'])}</span></p>
-    <h3><a class="stretch" href="/work/{p['slug']}/">{e(p['title'])}</a></h3>
-    <p class="sum">{e(p['summary'])}</p>
-    {stack(f['Stack'], 7)}
-    <p class="feature-more" aria-hidden="true">Read the case study {ICON_OUT}</p>
+    return f"""<article class="ex ex--lead">
+  <div class="ex-row">
+  {ex_art(p, 1, '<canvas class="plate-art" aria-hidden="true"></canvas>', live=True)}
+  {ex_text(p, 1, lead=True)}
   </div>
-  <div class="feature-vis">
+  <dl class="ex-metrics">{metrics}</dl>
+  <div class="ex-evidence">
     {diff_switch(diff_steps)}
     <div class="viz-wrap">{bench(compact=True)}</div>
   </div>
-  <dl class="feature-metrics">{metrics}</dl>
 </article>"""
 
 
 def bento_card(p, n):
-    f = dict(p["facts"])
-    return f"""<li class="bcard spot"><a href="/work/{p['slug']}/">
-  <div class="bcard-top"><span>{n:02d}</span><span>{e(p['repo'])}</span></div>
-  <h3>{e(p['title'])}</h3>
-  <p class="kind">{e(f['Type'])}</p>
-  <div class="viz-wrap">{VIZ[p['slug']]()}</div>
-  <div class="bcard-more"><p>{e(p['summary'])}</p>{stack(f['Stack'], 5)}<span class="go">Read the case study {ICON_OUT}</span></div>
-</a></li>"""
+    return f"""<li class="ex{' ex--flip' if n % 2 == 1 else ''}"><div class="ex-row">
+  {ex_art(p, n, ART[p['slug']]())}
+  {ex_text(p, n)}
+</div></li>"""
 
 
-def image_card(p):
+def gallery_item(p, n, variant):
     loc = dict(p["facts"]).get("Location", "")
-    return f"""<li class="icard"><a href="/work/{p['slug']}/">
-  <figure>{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 860px) 100vw, 50vw")}</figure>
-  <div class="body"><p class="meta">{e(loc)}</p><h3>{e(p['title'])}</h3><p class="sum">{e(p['summary'])}</p>
-  {stack(p['tags'])}</div>
-</a></li>"""
+    sizes = "(max-width: 860px) 100vw, 66vw" if variant in "ab" else "(max-width: 860px) 100vw, 50vw"
+    return f"""<article class="gi gi--{variant}"><a href="/work/{p['slug']}/">
+  <figure class="gi-fig">{img_tag(p['slug'], p['cover_alt'], sizes=sizes)}<span class="gi-n">Fig. {n:02d}</span></figure>
+  <div class="gi-text"><p class="gi-meta">{e(loc)}</p><h3>{e(p['title'])}</h3><p class="gi-sum">{e(p['summary'])}</p>
+  {stack(p['tags'])}<span class="ex-more">View the project {ICON_OUT}</span></div>
+</a></article>"""
 
 
-def mini_card(p):
+def gallery(items, start):
+    out = gallery_item(items[0], start, "a") + gallery_item(items[1], start + 1, "b")
+    out += '<div class="gi-pair">' + "".join(gallery_item(p, start + 2 + k, "c") for k, p in enumerate(items[2:4])) + "</div>"
+    return f'<div class="gallery">{out}</div>'
+
+
+def mini_card(p, n):
     loc = dict(p["facts"]).get("Location", "")
     return f"""<li class="mcard"><a href="/work/{p['slug']}/">
-  <figure>{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 860px) 50vw, 33vw")}</figure>
+  <figure>{img_tag(p['slug'], p['cover_alt'], sizes="(max-width: 860px) 50vw, 33vw")}<span class="gi-n">Fig. {n:02d}</span></figure>
   <h4>{e(p['title'])}</h4><p>{e(loc)}</p></a></li>"""
 
 
@@ -359,18 +379,18 @@ def home():
   <div class="container">
   {sec_intro(g['software'][1], f'<a class="btn sec-link" href="{SITE["github"]}">All repositories {ICON_OUT}</a>')}
   {featured_card(soft[0])}
-  <ul class="bento">{''.join(bento_card(p, n) for n, p in enumerate(soft[1:], 2))}</ul>
+  <ol class="catalogue">{''.join(bento_card(p, n) for n, p in enumerate(soft[1:], 2))}</ol>
 
   {sub_head("01.2", g['simulation'][0], g['simulation'][1])}
-  <ul class="grid2">{''.join(image_card(p) for p in sim)}</ul>
+  {gallery(sim, 5)}
 
   {sub_head("01.3", g['design'][0], g['design'][1])}
-  <ul class="grid3">{''.join(mini_card(p) for p in des)}</ul>
+  <ul class="grid3">{''.join(mini_card(p, 9 + k) for k, p in enumerate(des))}</ul>
   </div>
 </section>
 
 <section class="section" id="experience" aria-labelledby="exp-title">
-  {plate("signal", "02", "Experience", "exp-title", "From building physics to computer science.", "Signal, 2016 to 2026. Continuous physical fields, quantised step by step into discrete states. Hover to read the year.", data=f" data-events='{career}'")}
+  {plate("braid", "02", "Experience", "exp-title", "From building physics to computer science.", "Braid, 2016 to 2026. Strands of practice carried through each role and drawn together into one point. Hover to read the year.", data=f" data-events='{career}'")}
   <div class="container">
   {sec_intro("Ten years across architecture, urban planning and building-energy consulting, now spent on computer science research at NCKU.", '<a class="btn sec-link" href="/cv/">Full CV</a>')}
   <div class="xp-group"><h3>Work</h3><ol>{timeline(EXPERIENCE, now_first=True)}</ol></div>
