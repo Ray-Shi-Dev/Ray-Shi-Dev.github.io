@@ -6,13 +6,7 @@
   const onScroll = () => {
     if (!nav) return;
     nav.classList.toggle('is-stuck', window.scrollY > 8);
-    if (!paper) return;
-    // the work section turns from obsidian to white as it arrives, and back as it leaves
-    const r = paper.getBoundingClientRect(), vh = window.innerHeight, y = nav.offsetHeight / 2;
-    const ease = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
-    const t = Math.min(ease((vh * 0.95 - r.top) / (vh * 0.6)), ease((r.bottom - vh * 0.05) / (vh * 0.6)));
-    paper.style.setProperty('--t', t.toFixed(3));
-    nav.classList.toggle('on-paper', t > 0.5 && r.top <= y && r.bottom >= y);
+    if (paper) { const r = paper.getBoundingClientRect(), y = nav.offsetHeight / 2; nav.classList.toggle('on-paper', r.top <= y && r.bottom >= y); }
   };
   let tick = false;
   onScroll();
