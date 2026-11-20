@@ -3,13 +3,20 @@
 SITE = {
     "name": "Ray Shi",
     "url": "https://ray-shi-dev.github.io",
-    "role": "Data Scientist & Computational Engineer",
-    "description": "Ray Shi is a data scientist and computational engineer: Python pipelines, machine learning, simulation and spatial data. Research assistant in Computer Science at National Cheng Kung University.",
+    "role": "Data Scientist & ML Engineer",
+    "title": "Ray Shi | Data Scientist & ML Engineer for spatial, time-series and simulation data",
+    "description": "Ray Shi builds fast, reliable machine-learning pipelines for spatial, time-series and simulation data: a 72% faster anomaly-detection pipeline, two years of energy simulation at Arup, now CS research at NCKU.",
     "email": "ray.ecodesigner@gmail.com",
     "linkedin": "https://www.linkedin.com/in/ray-shi-b633302a8",
     "github": "https://github.com/Ray-Shi-Dev",
     "status": "Research Assistant, NCKU NetDB Lab",
-    "hero_sub": "Data scientist and computational engineer. I build Python data pipelines, machine-learning models and simulation tools.",
+    "hero_sub": "Data scientist for the physical world. I turn spatial, time-series and simulation data into fast, reliable machine-learning pipelines.",
+    "open_to": "Open to data science and ML engineering roles. Based in Tainan, Taiwan.",
+    "proof": [("72%", "faster anomaly-detection pipeline"), ("1.4 GB", "lower peak memory"), ("2 yrs", "energy simulation at Arup")],
+    # Paste the content value of Google Search Console's HTML-tag verification here (URL-prefix property).
+    "google_site_verification": "",
+    # GoatCounter site code, e.g. "rayshi" for rayshi.goatcounter.com. Empty means no analytics script.
+    "goatcounter": "",
     "affiliations": [
         ("NCKU", "Research assistant, computer science", "2026–"),
         ("Arup", "Graduate consultant, computational energy", "2024–26"),

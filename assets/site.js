@@ -78,3 +78,15 @@
   }), { threshold: 0.6 });
   els.forEach(el => io.observe(el));
 })();
+
+// Analytics: when GoatCounter is enabled, record email, CV and outbound clicks as events.
+document.addEventListener('click', ev => {
+  const a = ev.target.closest('a[href]');
+  if (!a || a.hasAttribute('data-goatcounter-click') || !window.goatcounter || !window.goatcounter.count) return;
+  const href = a.getAttribute('href');
+  let name = null;
+  if (href.startsWith('mailto:')) name = 'click-email';
+  else if (href === '/cv/' || href.endsWith('.pdf')) name = 'click-cv';
+  else if (/^https?:/.test(href) && !href.includes(location.host)) name = 'out-' + new URL(href).hostname.replace(/^www\./, '');
+  if (name) window.goatcounter.count({ path: name, title: a.textContent.trim().slice(0, 60), event: true });
+});

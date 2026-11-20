@@ -1,5 +1,5 @@
 """Static site generator. Run: python3 build.py  -> writes HTML into this folder."""
-import json, html, re
+import json, html, re, os, sys
 from pathlib import Path
 from PIL import Image
 from content import (SITE, GROUPS, PROJECTS, VENTURES, ABOUT, EXPERIENCE,
@@ -7,15 +7,18 @@ from content import (SITE, GROUPS, PROJECTS, VENTURES, ABOUT, EXPERIENCE,
 from viz import VIZ, bench, DEFS
 from art import ART, CAPTIONS
 from cases import CASES
+from posts import POSTS
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
 
-ROOT = Path(__file__).parent
+ROOT = Path(os.environ.get("SITE_OUT") or Path(__file__).parent)
+DRAFTS = "--drafts" in sys.argv
+BUILD_DATE = __import__("datetime").date.today().isoformat()
 IMG = ROOT / "assets" / "img"
 e = html.escape
 YEAR = 2026
-VERSION="19"
+VERSION="20"
 
 ICON_OUT = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 ICON_CODE = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -62,11 +65,27 @@ def head(title, desc, path, og, extra=""):
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preload" href="/assets/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/site.css?v={VERSION}">
+{feed_link()}{verify_tag()}{analytics_tag()}
 <script>document.documentElement.classList.add('js');setTimeout(function(){{var h=document.querySelector('.hero');h&&h.classList.add('is-ready')}},3000)</script>
 {extra}</head>"""
 
 
-NAV = [("Work", "/#work"), ("Experience", "/#experience"), ("About", "/#about"), ("CV", "/cv/")]
+def feed_link():
+    return '\n<link rel="alternate" type="application/atom+xml" title="Ray Shi, writing" href="/feed.xml">' if LIVE_POSTS else ""
+
+
+def verify_tag():
+    v = SITE.get("google_site_verification")
+    return f'\n<meta name="google-site-verification" content="{e(v)}">' if v else ""
+
+
+def analytics_tag():
+    g = SITE.get("goatcounter")
+    return f'\n<script data-goatcounter="https://{e(g)}.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>' if g else ""
+
+
+LIVE_POSTS = sorted((p for p in POSTS if DRAFTS or not p.get("draft")), key=lambda p: p["date"], reverse=True)
+NAV = [("Work", "/#work")] + ([("Writing", "/writing/")] if LIVE_POSTS else []) + [("Experience", "/#experience"), ("About", "/#about"), ("CV", "/cv/")]
 
 
 def nav(current="", clear=False):
@@ -92,7 +111,8 @@ def contact_block():
     </div>"""
     return f"""<section class="contact" id="contact" aria-labelledby="contact-title">
   {plate("moire", "04", "Contact", "contact-title", "Let's work on something with data.", "Interference. Two ring fields, one fixed on Tainan, one following you.", cta)}
-</section>"""
+</section>
+<script src="/assets/plates.js?v={VERSION}" defer></script>"""
 
 
 def footer():
@@ -254,9 +274,12 @@ def pairs(items):
     return "".join(f"<li><span class='a'>{e(a)}</span><span class='b'>{e(b)}</span></li>" for a, b in items)
 
 
+PERSON_ID = SITE["url"] + "/#person"
+
+
 def jsonld():
-    data = {
-        "@context": "https://schema.org", "@type": "Person", "name": "Ray Shi",
+    person = {
+        "@type": "Person", "@id": PERSON_ID, "name": "Ray Shi",
         "alternateName": "Chun-Rui Shi", "jobTitle": SITE["role"], "url": SITE["url"],
         "email": f"mailto:{SITE['email']}", "image": SITE["url"] + "/assets/img/ray-shi-cut.webp",
         "sameAs": [SITE["linkedin"], SITE["github"]],
@@ -265,7 +288,10 @@ def jsonld():
                      ["The University of Manchester", "National Cheng Kung University", "National University of Kaohsiung"]],
         "knowsAbout": ["Data science", "Machine learning", "Python", "Time-series analysis", "Spatial statistics",
                        "GIS", "Building energy simulation", "Computational geometry"],
+        "description": SITE["description"],
     }
+    data = {"@context": "https://schema.org", "@type": "ProfilePage", "url": SITE["url"] + "/", "name": SITE["title"],
+            "dateModified": BUILD_DATE, "mainEntity": person}
     return f'<script type="application/ld+json">{json.dumps(data)}</script>\n'
 
 
@@ -332,9 +358,10 @@ def home():
     modes = "".join(f'<button class="morph-tab" type="button" aria-pressed="{"true" if i == 0 else "false"}" data-story="{e(s)}"><span class="idx">{n}</span><span class="lab">{e(t)}</span></button>' for i, (n, t, s) in enumerate(MODES))
     bio = "".join(f"<p>{e(x)}</p>" for x in ABOUT["bio"])
     toolkit = "".join(f"""<li class="tk"><h4>{e(k)}</h4>{stack(v, 20)}</li>""" for k, v in TOOLKIT)
+    proof = "".join(f"<li><b>{e(a)}</b> {e(t)}</li>" for a, t in SITE["proof"])
     career = e(json.dumps([{"s": s, "e": en, "t": t, "now": now} for s, en, t, now in CAREER]))
 
-    page = head("Ray Shi: data science and computational engineering", SITE["description"], "/", "/assets/og/home.jpg", jsonld())
+    page = head(SITE["title"], SITE["description"], "/", "/assets/og/home.jpg", jsonld())
     page += f"""
 <body class="home">
 {nav(clear=True)}
@@ -347,11 +374,15 @@ def home():
     <div class="hero-main">
       <h1 class="hero-title reveal">Ray Shi</h1>
       <div class="hero-row reveal">
-        <p class="hero-sub">{e(SITE['hero_sub'])}</p>
+        <div class="hero-copy">
+          <p class="hero-sub">{e(SITE['hero_sub'])}</p>
+          <ul class="hero-proof">{proof}</ul>
+          <p class="hero-open"><i aria-hidden="true"></i>{e(SITE['open_to'])}</p>
+        </div>
         <div class="hero-cta">
-          <a class="btn btn-primary" href="#work">View work</a>
-          <a class="btn" href="{SITE['github']}">GitHub {ICON_OUT}</a>
-          <a class="btn" href="/cv/">CV</a>
+          <a class="btn btn-primary" href="mailto:{SITE['email']}" data-goatcounter-click="hero-email">Email me</a>
+          <a class="btn" href="/cv/" data-goatcounter-click="hero-cv">CV</a>
+          <a class="btn" href="{SITE['github']}" data-goatcounter-click="hero-github">GitHub {ICON_OUT}</a>
         </div>
       </div>
     </div>
@@ -383,6 +414,7 @@ def home():
   </div>
 </section>
 
+{writing_home()}
 <section class="section" id="experience" aria-labelledby="exp-title">
   {plate("braid", "02", "Experience", "exp-title", "From building physics to computer science.", "Braid, 2016 to 2026. Strands of practice carried through each role and drawn together into one point. Hover to read the year.", data=f" data-events='{career}'")}
   <div class="container">
@@ -412,7 +444,6 @@ def home():
 {footer()}
 <script src="/assets/site.js?v={VERSION}" defer></script>
 <script src="/assets/hero-gl.js?v={VERSION}" defer></script>
-<script src="/assets/plates.js?v={VERSION}" defer></script>
 </body></html>"""
     (ROOT / "index.html").write_text(page)
 
@@ -576,8 +607,10 @@ def cv_page():
 
 
 def extras():
-    urls = ["/", "/cv/"] + [f"/work/{p['slug']}/" for p in PROJECTS]
-    sm = "".join(f"<url><loc>{SITE['url']}{u}</loc></url>" for u in urls)
+    urls = [("/", BUILD_DATE), ("/cv/", BUILD_DATE)] + [(f"/work/{p['slug']}/", BUILD_DATE) for p in PROJECTS]
+    if LIVE_POSTS:
+        urls += [("/writing/", LIVE_POSTS[0]["date"])] + [(f"/writing/{p['slug']}/", p.get("updated", p["date"])) for p in LIVE_POSTS if not p.get("draft")]
+    sm = "".join(f"<url><loc>{SITE['url']}{u}</loc><lastmod>{d}</lastmod></url>" for u, d in urls)
     (ROOT / "sitemap.xml").write_text(f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{sm}</urlset>')
     (ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {SITE['url']}/sitemap.xml\n")
     page = head("Page not found | Ray Shi", "This page doesn't exist.", "/404.html", "/assets/og/home.jpg")
@@ -586,10 +619,141 @@ def extras():
     (ROOT / ".nojekyll").write_text("")
 
 
+# ---- writing ------------------------------------------------------------------------------
+def inline(t):
+    """Escape, then allow `code` spans and [label](url) links."""
+    t = e(t)
+    t = re.sub(r"`([^`]+)`", r"<code>\1</code>", t)
+    return re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+|/[^)\s]*)\)", r'<a href="\2">\1</a>', t)
+
+
+def fmt_date(d):
+    import datetime
+    return datetime.date.fromisoformat(d).strftime("%-d %B %Y")
+
+
+def read_min(p):
+    words = 0
+    for blk in p["body"]:
+        for x in blk[1:]:
+            if isinstance(x, str): words += len(x.split())
+            elif isinstance(x, list): words += sum(len(str(y).split()) for y in x)
+    return max(1, round(words / 230))
+
+
+def post_body(p):
+    out, toc = "", []
+    for blk in p["body"]:
+        k = blk[0]
+        if k == "p": out += f"<p>{inline(blk[1])}</p>"
+        elif k == "h2":
+            hid = re.sub(r"[^a-z0-9]+", "-", blk[1].lower()).strip("-")
+            toc.append((hid, blk[1])); out += f'<h2 id="{hid}">{e(blk[1])}</h2>'
+        elif k == "ul": out += "<ul>" + "".join(f"<li>{inline(x)}</li>" for x in blk[1]) + "</ul>"
+        elif k == "diff": out += diff_block(blk[1], blk[2], blk[3])
+        elif k == "code": out += code_block(blk[1], blk[2])
+        elif k == "bench": out += f'<div class="viz-wrap">{bench(compact=True)}</div>'
+        elif k == "note": out += f'<p class="post-note">{inline(blk[1])}</p>'
+        elif k == "table":
+            hd = "".join(f'<th scope="col">{e(x)}</th>' for x in blk[1])
+            rows = "".join("<tr>" + f'<th scope="row">{e(r[0])}</th>' + "".join(f"<td>{e(c)}</td>" for c in r[1:]) + "</tr>" for r in blk[2])
+            out += f'<figure class="results"><figcaption>{e(blk[3])}</figcaption><div class="tbl"><table><thead><tr>{hd}</tr></thead><tbody>{rows}</tbody></table></div></figure>'
+    return out, toc
+
+
+def post_ld(p):
+    url = f"{SITE['url']}/writing/{p['slug']}/"
+    data = {"@context": "https://schema.org", "@type": "BlogPosting", "headline": p["title"], "description": p["dek"],
+            "datePublished": p["date"], "dateModified": p.get("updated", p["date"]), "url": url, "mainEntityOfPage": url,
+            "author": {"@type": "Person", "@id": PERSON_ID, "name": "Ray Shi", "url": SITE["url"] + "/"},
+            "keywords": ", ".join(p["tags"]), "image": SITE["url"] + f"/assets/og/{p.get('project', 'home')}.jpg"}
+    return f'<script type="application/ld+json">{json.dumps(data)}</script>\n'
+
+
+def post_page(p):
+    body, toc = post_body(p)
+    proj = next((x for x in PROJECTS if x["slug"] == p.get("project")), None)
+    og = f"/assets/og/{proj['slug']}.jpg" if proj else "/assets/og/home.jpg"
+    extra = post_ld(p) + '<meta property="article:published_time" content="' + p["date"] + '">\n' + ('<meta name="robots" content="noindex">\n' if p.get("draft") else "")
+    page = head(f"{p['title']} | Ray Shi", p["dek"], f"/writing/{p['slug']}/", og, extra)
+    toc_html = "".join(f'<li><a href="#{a}">{e(t)}</a></li>' for a, t in toc)
+    related = f'<p class="post-rel">Project: <a href="/work/{proj["slug"]}/">{e(proj["title"])}</a></p>' if proj else ""
+    page += f"""
+<body class="project post">
+{nav("Writing")}
+<main id="main">
+<article>
+  <header class="container p-head">
+    <p class="crumb"><a href="/writing/">Writing</a><span aria-hidden="true">/</span><time datetime="{p['date']}">{fmt_date(p['date'])}</time><span aria-hidden="true">/</span>{read_min(p)} min read</p>
+    <h1 class="p-title">{e(p['title'])}</h1>
+    <p class="p-sum">{e(p['dek'])}</p>
+    {stack(", ".join(p['tags']))}
+  </header>
+  <div class="container case">
+    <nav class="case-toc" aria-label="On this page"><p>On this page</p><ol>{toc_html}</ol></nav>
+    <div class="case-main post-body">{body}{related}</div>
+  </div>
+</article>
+</main>
+{contact_block()}
+{footer()}
+<script src="/assets/site.js?v={VERSION}" defer></script>
+</body></html>"""
+    d = ROOT / "writing" / p["slug"]
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "index.html").write_text(page)
+
+
+def post_card(p, n):
+    return f"""<li class="wr"><a href="/writing/{p['slug']}/">
+  <p class="wr-meta"><span class="idx"><b>{n:02d}</b></span><time datetime="{p['date']}">{fmt_date(p['date'])}</time><span>{read_min(p)} min</span></p>
+  <h3>{e(p['title'])}</h3><p class="wr-dek">{e(p['dek'])}</p><span class="ex-more">Read {ICON_OUT}</span></a></li>"""
+
+
+def writing_home():
+    if not LIVE_POSTS:
+        return ""
+    items = "".join(post_card(p, i) for i, p in enumerate(LIVE_POSTS[:3], 1))
+    return f"""<section class="section container writing" id="writing" aria-labelledby="writing-title">
+  {sec_head("01.4", "Writing", "writing-title", "Notes from the work.", "Case studies with the numbers, the code and what I would change.", '<a class="btn sec-link" href="/writing/">All writing</a>')}
+  <ol class="wr-list">{items}</ol>
+</section>
+"""
+
+
+def writing_index():
+    if not LIVE_POSTS:
+        return
+    items = "".join(post_card(p, i) for i, p in enumerate(LIVE_POSTS, 1))
+    page = head("Writing | Ray Shi", "Case studies and notes on data pipelines, machine learning and spatial data by Ray Shi.", "/writing/", "/assets/og/home.jpg")
+    page += f"""
+<body class="project">
+{nav("Writing")}
+<main id="main" class="container">
+  <header class="p-head"><h1 class="p-title">Writing</h1><p class="p-sum">Case studies and notes from the work: what I built, what it measured, and what I would change. Subscribe with the <a href="/feed.xml">Atom feed</a>.</p></header>
+  <ol class="wr-list">{items}</ol>
+</main>
+{contact_block()}
+{footer()}
+<script src="/assets/site.js?v={VERSION}" defer></script>
+</body></html>"""
+    d = ROOT / "writing"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "index.html").write_text(page)
+    for p in LIVE_POSTS:
+        post_page(p)
+    ents = ""
+    for p in LIVE_POSTS:
+        url = f"{SITE['url']}/writing/{p['slug']}/"
+        ents += f"""<entry><title>{e(p['title'])}</title><link href="{url}"/><id>{url}</id><published>{p['date']}T00:00:00Z</published><updated>{p.get('updated', p['date'])}T00:00:00Z</updated><summary>{e(p['dek'])}</summary></entry>"""
+    (ROOT / "feed.xml").write_text(f"""<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Ray Shi, writing</title><link href="{SITE['url']}/writing/"/><link rel="self" href="{SITE['url']}/feed.xml"/><id>{SITE['url']}/writing/</id><updated>{LIVE_POSTS[0].get('updated', LIVE_POSTS[0]['date'])}T00:00:00Z</updated><author><name>Ray Shi</name><uri>{SITE['url']}/</uri></author>{ents}</feed>""")
+
+
 if __name__ == "__main__":
     home()
     for i, p in enumerate(PROJECTS):
         project_page(i, p)
     cv_page()
+    writing_index()
     extras()
     print("built", len(PROJECTS), "projects")
