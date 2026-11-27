@@ -43,3 +43,16 @@ the nav link, `feed.xml` and sitemap entries all appear automatically once at le
 
 - `SITE["google_site_verification"]` in `content.py`: the content value from Google Search Console's HTML-tag method (URL-prefix property).
 - `SITE["goatcounter"]`: your GoatCounter site code. When set, page views are counted and email, CV and outbound clicks are recorded as events.
+
+## Tools: EnergyPlus pre-review (`/tools/eplus-prereview/`)
+
+A browser version of [eplus-prereview](https://github.com/Ray-Shi-Dev/eplus-prereview). The page, its
+`app.js`, `worker.js` and `tool.css` live in `tools/eplus-prereview/`; `build.py` (`tool_page()`) writes
+`index.html`. Python runs in a Web Worker through Pyodide, self-hosted in `assets/pyodide/0.27.7/` (only the
+core runtime and the `sqlite3` package, MPL-2.0). Run files are read in the tab and never uploaded; the page's
+Content-Security-Policy only allows connections to this site.
+
+To ship a new checker version, keep a checkout of eplus-prereview next to this folder (or set
+`PREREVIEW_SRC=/path/to/eplus-prereview/src/prereview`) and run `python3 build.py`: it zips the package into
+`tools/eplus-prereview/prereview-<hash>.zip` and records it in `bundle.json`. Without a checkout the committed
+bundle is kept.

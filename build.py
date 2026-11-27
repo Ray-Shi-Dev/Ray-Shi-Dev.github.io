@@ -607,7 +607,7 @@ def cv_page():
 
 
 def extras():
-    urls = [("/", BUILD_DATE), ("/cv/", BUILD_DATE)] + [(f"/work/{p['slug']}/", BUILD_DATE) for p in PROJECTS]
+    urls = [("/", BUILD_DATE), ("/cv/", BUILD_DATE), ("/tools/eplus-prereview/", BUILD_DATE)] + [(f"/work/{p['slug']}/", BUILD_DATE) for p in PROJECTS]
     if LIVE_POSTS:
         urls += [("/writing/", LIVE_POSTS[0]["date"])] + [(f"/writing/{p['slug']}/", p.get("updated", p["date"])) for p in LIVE_POSTS if not p.get("draft")]
     sm = "".join(f"<url><loc>{SITE['url']}{u}</loc><lastmod>{d}</lastmod></url>" for u, d in urls)
@@ -617,6 +617,183 @@ def extras():
     page += f"""<body class="project">{nav()}<main id="main" class="container nf"><h1 class="p-title">This page doesn't exist</h1><p class="p-sum">The link may be out of date. Go to the <a href="/">home page</a> or see <a href="/#work">selected work</a>.</p></main>{footer()}</body></html>"""
     (ROOT / "404.html").write_text(page)
     (ROOT / ".nojekyll").write_text("")
+
+
+# ---- tools --------------------------------------------------------------------------------
+TOOL_DIR = ROOT / "tools" / "eplus-prereview"
+PREREVIEW_REPO = "Ray-Shi-Dev/eplus-prereview"
+
+
+def _short_hash(data):
+    return __import__("hashlib").sha256(data).hexdigest()[:10]
+
+
+def prereview_bundle():
+    """Zip the prereview package for the web tool. Built from a sibling checkout of eplus-prereview
+    (or $PREREVIEW_SRC) when one exists; otherwise the committed bundle is kept as it is."""
+    import zipfile, io
+    src = Path(os.environ.get("PREREVIEW_SRC") or Path(__file__).parent.parent / "eplus-prereview" / "src" / "prereview")
+    manifest = TOOL_DIR / "bundle.json"
+    if (src / "__init__.py").is_file():
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            for f in sorted(src.rglob("*.py")):
+                info = zipfile.ZipInfo("prereview/" + f.relative_to(src).as_posix(), (2020, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                z.writestr(info, f.read_bytes())
+        data = buf.getvalue()
+        name = f"prereview-{_short_hash(data)}.zip"
+        version = re.search(r'__version__\s*=\s*"([^"]+)"', (src / "__init__.py").read_text()).group(1)
+        TOOL_DIR.mkdir(parents=True, exist_ok=True)
+        for old in TOOL_DIR.glob("prereview-*.zip"):
+            if old.name != name:
+                old.unlink()
+        (TOOL_DIR / name).write_bytes(data)
+        manifest.write_text(json.dumps({"bundle": name, "version": version}) + "\n")
+    return json.loads(manifest.read_text())
+
+
+def tool_page():
+    b = prereview_bundle()
+    ver = lambda f: _short_hash((TOOL_DIR / f).read_bytes())
+    base = "/tools/eplus-prereview/"
+    title = "EnergyPlus pre-review for LEED"
+    desc = ("Check EnergyPlus proposed and Appendix G baseline runs the way a LEED reviewer would, before you submit. "
+            "Runs in your browser: your model files are never uploaded.")
+    inline = "document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)"
+    sha = __import__("base64").b64encode(__import__("hashlib").sha256(inline.encode()).digest()).decode()
+    csp = ("default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-" + sha + "'; "
+           "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; "
+           "worker-src 'self'; frame-src 'self' blob: data:; form-action 'none'; base-uri 'none'; object-src 'none'")
+    extra = (f'<meta http-equiv="Content-Security-Policy" content="{csp}">\n'
+             f'<link rel="stylesheet" href="{base}tool.css?v={ver("tool.css")}">\n')
+    facts = [("Runs in", "Your browser, offline once loaded"), ("Reads", ".sql, .err and .idf of each run"),
+             ("Standard", "ASHRAE 90.1-2010 / 2016 App. G"), ("Status", f"Beta, v{b['version']}")]
+    checks = [
+        ("Unmet load hours", "Proposed and every baseline against the 300-hour limit, counted from the timestep data, with the zones and hours that drive it."),
+        ("Simulation health", "Severe errors, warnings that change results, and a plain-language fix for each common .err message."),
+        ("Baseline and proposed match", "Schedules, internal loads, outdoor air, infiltration, areas, design days and weather file that must be the same in both."),
+        ("Baseline rules", "System type, fan power, efficiencies, envelope, window-to-wall ratio and the four rotations, for 90.1-2010 and 2016."),
+    ]
+    check_html = "".join(f"<li><h3>{e(h)}</h3><p>{e(t)}</p></li>" for h, t in checks)
+    radio = lambda name, opts, cur: "".join(
+        f'<label class="pr-opt"><input type="radio" name="{name}" value="{v}"{" checked" if v == cur else ""}><span>{e(l)}</span></label>' for v, l in opts)
+    page = head(f"{title} | Ray Shi", desc, base, "/assets/og/home.jpg", extra)
+    page += f"""
+<body class="project tool">
+{nav()}
+<main id="main">
+<article>
+  <header class="container p-head">
+    <p class="crumb"><a href="/#ventures">Ventures</a><span aria-hidden="true">/</span>Building energy</p>
+    <h1 class="p-title">EnergyPlus <span class="nw">pre-review</span> for LEED</h1>
+    <p class="p-sum">Find the review comments before the reviewer does. Drop in your proposed and baseline EnergyPlus runs and get the issues a LEED energy reviewer is likely to flag, each with its evidence and a fix.</p>
+    {facts_block(facts)}
+  </header>
+
+  <section class="container pr" id="pr-app" aria-label="Checker"
+    data-bundle="{base}{b['bundle']}" data-version="{e(b['version'])}" data-worker="{base}worker.js?v={ver('worker.js')}"
+    data-repo="{PREREVIEW_REPO}" data-email="{e(SITE['email'])}">
+    <p class="pr-privacy"><strong>Your files stay on your computer.</strong> They are read inside this browser tab and never uploaded; the page loads only its own code from this site and makes no other connection. Close the tab and everything is gone.</p>
+
+    <ol class="pr-steps">
+      <li class="pr-step">
+        <p class="pr-n">01</p>
+        <div class="pr-body">
+          <h2>Proposed run</h2>
+          <p class="pr-help">The EnergyPlus output folder of the proposed model: the one with <code>eplusout.sql</code> and <code>eplusout.err</code> (OpenStudio: the <code>run</code> folder). Include <code>in.idf</code> for the checks that read inputs.</p>
+          <div class="pr-zone" data-zone="proposed">
+            <p>Drop the folder here, or</p>
+            <label class="btn">Choose folder<input type="file" webkitdirectory multiple hidden></label>
+            <label class="btn">Choose files<input type="file" multiple accept=".sql,.err,.idf,.expidf" hidden></label>
+          </div>
+          <p class="pr-note" data-note="proposed" role="status" hidden></p>
+          <ul class="pr-runs" data-list="proposed"></ul>
+        </div>
+      </li>
+      <li class="pr-step">
+        <p class="pr-n">02</p>
+        <div class="pr-body">
+          <h2>Baseline runs</h2>
+          <p class="pr-help">One folder per orientation (0°, 90°, 180°, 270°). Drop them together, or choose the parent folder that holds them. Rotations are read from the results.</p>
+          <div class="pr-zone" data-zone="baselines">
+            <p>Drop the folders here, or</p>
+            <label class="btn">Choose folder<input type="file" webkitdirectory multiple hidden></label>
+            <label class="btn">Choose files<input type="file" multiple accept=".sql,.err,.idf,.expidf" hidden></label>
+          </div>
+          <p class="pr-note" data-note="baselines" role="status" hidden></p>
+          <ul class="pr-runs" data-list="baselines"></ul>
+        </div>
+      </li>
+      <li class="pr-step">
+        <p class="pr-n">03</p>
+        <div class="pr-body">
+          <h2>Project facts</h2>
+          <p class="pr-help">What the models alone can't tell. Leave a field empty if you're not sure: the checks that need it are marked for review instead of failing.</p>
+          <form id="pr-form" class="pr-form" onsubmit="return false">
+            <label class="pr-field pr-field--wide"><span>Project name <em>(only shown in your report)</em></span><input name="name" type="text" autocomplete="off" placeholder="Untitled project"></label>
+            <fieldset class="pr-field pr-field--wide"><legend>Standard</legend>{radio("edition", [("2010", "90.1-2010 (LEED v4)"), ("2016", "90.1-2016 (LEED v4.1)")], "2010")}</fieldset>
+            <label class="pr-field"><span>Building type</span><select name="building_type"><option value="">Not sure</option><option value="nonresidential">Nonresidential</option><option value="residential">Residential</option><option value="retail">Retail</option><option value="public_assembly">Public assembly</option><option value="hospital">Hospital</option><option value="heated_only_storage">Heated-only storage</option></select></label>
+            <label class="pr-field"><span>Floors above grade</span><input name="floors" type="number" min="1" max="200" inputmode="numeric" placeholder="e.g. 12"></label>
+            <label class="pr-field" data-ed="2010"><span>Proposed heating source</span><select name="heating_source"><option value="">Not sure</option><option value="fossil">Fossil fuel, hybrid or purchased heat</option><option value="electric">Electric</option></select></label>
+            <label class="pr-field" data-ed="2016" hidden><span>Climate zone (ASHRAE 169)</span><input name="climate_zone" type="text" maxlength="3" placeholder="e.g. 1A, 2A, 4C" autocomplete="off"></label>
+            <label class="pr-check pr-field--wide"><input type="checkbox" name="rotation_exception"><span>Orientation is fixed by the site and the rating authority has accepted one baseline instead of four</span></label>
+          </form>
+        </div>
+      </li>
+    </ol>
+
+    <div class="pr-go">
+      <button class="btn btn-primary" id="pr-go" type="button" disabled>Check the runs</button>
+      <p class="pr-hint" id="pr-hint"></p>
+      <p class="pr-status" id="pr-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <section class="pr-result" id="pr-result" hidden aria-labelledby="pr-result-title">
+      <div class="pr-result-head">
+        <h2 id="pr-result-title">Report</h2>
+        <dl class="pr-counts" id="pr-counts"></dl>
+        <p class="pr-meta" id="pr-meta"></p>
+        <div class="pr-actions">
+          <button class="btn" id="pr-dl-html" type="button">Download report {ICON_DOWN}</button>
+          <button class="btn" id="pr-dl-json" type="button">Download JSON {ICON_DOWN}</button>
+        </div>
+      </div>
+      <iframe class="pr-frame" id="pr-frame" title="prereview report" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+      <div class="pr-feedback">
+        <h3>Wrong, missing or unclear?</h3>
+        <p>Tell me which rule got it wrong, or what a reviewer flagged that this missed. Both links open a prefilled note with only the rule ids and counts, no file contents or project name, and you can edit it before sending.</p>
+        <div class="pr-actions">
+          <a class="btn btn-primary" id="pr-fb-gh" href="https://github.com/{PREREVIEW_REPO}/issues/new" rel="noopener" target="_blank">Open a GitHub issue {ICON_OUT}</a>
+          <a class="btn" id="pr-fb-mail" href="mailto:{e(SITE['email'])}">Email Ray</a>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <div class="container p-body pr-about">
+    <aside class="p-high"><h2>Links</h2><ul>
+      <li><a href="{base}sample-report.html">Sample report</a> from a test building with planted mistakes</li>
+      <li><a href="https://github.com/{PREREVIEW_REPO}">Source code and command-line version</a></li>
+      <li><a href="https://github.com/{PREREVIEW_REPO}/blob/main/docs/RULES.md">Every rule and its reference</a></li>
+    </ul></aside>
+    <div class="prose">
+      <h3>What it checks</h3>
+      <ul class="pr-checks">{check_html}</ul>
+      <h3>What it doesn't do</h3>
+      <p>It reads results you have already simulated; it does not run EnergyPlus (the command-line version can). It covers the checks that can be made from the outputs and the IDF, not drawings or the energy cost budget, and it can be wrong: treat a FAIL as a strong hint and a REVIEW as something to look at, and keep your own judgement.</p>
+      <h3>Where the rules come from</h3>
+      <p>ASHRAE 90.1-2010 and 2016 Appendix G as used by LEED v4 and v4.1, and the review comments energy modellers keep receiving. Each rule was tested by planting the mistake in a model and confirming it is caught, with no false alarms on the clean models; the scorecards are in the repository.</p>
+      <p class="pr-small">prereview <span id="pr-version"></span>. Python runs in the browser through <a href="https://pyodide.org">Pyodide</a> (MPL-2.0), served from this site.</p>
+    </div>
+  </div>
+</article>
+</main>
+{footer()}
+<script src="/assets/site.js?v={VERSION}" defer></script>
+<script src="{base}app.js?v={ver('app.js')}" defer></script>
+</body></html>"""
+    (TOOL_DIR / "index.html").write_text(page)
 
 
 # ---- writing ------------------------------------------------------------------------------
@@ -754,6 +931,7 @@ if __name__ == "__main__":
     for i, p in enumerate(PROJECTS):
         project_page(i, p)
     cv_page()
+    tool_page()
     writing_index()
     extras()
     print("built", len(PROJECTS), "projects")

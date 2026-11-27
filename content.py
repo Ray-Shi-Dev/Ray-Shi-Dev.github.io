@@ -391,7 +391,14 @@ REPOS = [
 
 # Add ventures here when they launch:
 # {"name": "...", "text": "One sentence on what it does.", "url": "https://...", "status": "Live"}
-VENTURES = []
+VENTURES = [
+    {
+        "name": "EnergyPlus pre-review",
+        "text": "Checks EnergyPlus proposed and Appendix G baseline runs the way a LEED energy reviewer would, before submission. Runs in the browser, so model files never leave the computer.",
+        "url": "/tools/eplus-prereview/",
+        "status": "Beta",
+    },
+]
 
 ABOUT = {
     "bio": [

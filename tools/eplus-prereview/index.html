@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EnergyPlus pre-review for LEED | Ray Shi</title>
+<meta name="description" content="Check EnergyPlus proposed and Appendix G baseline runs the way a LEED reviewer would, before you submit. Runs in your browser: your model files are never uploaded.">
+<meta name="author" content="Ray Shi">
+<link rel="canonical" href="https://ray-shi-dev.github.io/tools/eplus-prereview/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Ray Shi">
+<meta property="og:title" content="EnergyPlus pre-review for LEED | Ray Shi">
+<meta property="og:description" content="Check EnergyPlus proposed and Appendix G baseline runs the way a LEED reviewer would, before you submit. Runs in your browser: your model files are never uploaded.">
+<meta property="og:url" content="https://ray-shi-dev.github.io/tools/eplus-prereview/">
+<meta property="og:image" content="https://ray-shi-dev.github.io/assets/og/home.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#070709">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/fonts/instrument-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/site.css?v=22">
+
+<script>document.documentElement.classList.add('js');setTimeout(function(){var h=document.querySelector('.hero');h&&h.classList.add('is-ready')},3000)</script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-Z88RnHV2TQeceSL9LDUkAu4OSI/ncjzYbGibZL6J9Ig='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; frame-src 'self' blob: data:; form-action 'none'; base-uri 'none'; object-src 'none'">
+<link rel="stylesheet" href="/tools/eplus-prereview/tool.css?v=265a68b13c">
+</head>
+<body class="project tool">
+<svg class="svg-defs" aria-hidden="true" focusable="false"><defs><pattern id="p-dots" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".75" fill="#8A8F98" fill-opacity=".55"/></pattern></defs></svg>
+<div class="guides" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="nav-home" href="/">Index</a>
+    <nav class="nav-links" aria-label="Primary"><a href="/#work">Work</a><a href="/#experience">Experience</a><a href="/#about">About</a><a href="/cv/">CV</a><a class="nav-cta" href="mailto:ray.ecodesigner@gmail.com">Contact</a></nav>
+  </div>
+</header>
+<main id="main">
+<article>
+  <header class="container p-head">
+    <p class="crumb"><a href="/#ventures">Ventures</a><span aria-hidden="true">/</span>Building energy</p>
+    <h1 class="p-title">EnergyPlus <span class="nw">pre-review</span> for LEED</h1>
+    <p class="p-sum">Find the review comments before the reviewer does. Drop in your proposed and baseline EnergyPlus runs and get the issues a LEED energy reviewer is likely to flag, each with its evidence and a fix.</p>
+    <dl class="facts"><div><dt>Runs in</dt><dd>Your browser, offline once loaded</dd></div><div><dt>Reads</dt><dd>.sql, .err and .idf of each run</dd></div><div><dt>Standard</dt><dd>ASHRAE 90.1-2010 / 2016 App. G</dd></div><div><dt>Status</dt><dd>Beta, v0.1.0</dd></div></dl>
+  </header>
+
+  <section class="container pr" id="pr-app" aria-label="Checker"
+    data-bundle="/tools/eplus-prereview/prereview-4b161a9b47.zip" data-version="0.1.0" data-worker="/tools/eplus-prereview/worker.js?v=72a53c3873"
+    data-repo="Ray-Shi-Dev/eplus-prereview" data-email="ray.ecodesigner@gmail.com">
+    <p class="pr-privacy"><strong>Your files stay on your computer.</strong> They are read inside this browser tab and never uploaded; the page loads only its own code from this site and makes no other connection. Close the tab and everything is gone.</p>
+
+    <ol class="pr-steps">
+      <li class="pr-step">
+        <p class="pr-n">01</p>
+        <div class="pr-body">
+          <h2>Proposed run</h2>
+          <p class="pr-help">The EnergyPlus output folder of the proposed model: the one with <code>eplusout.sql</code> and <code>eplusout.err</code> (OpenStudio: the <code>run</code> folder). Include <code>in.idf</code> for the checks that read inputs.</p>
+          <div class="pr-zone" data-zone="proposed">
+            <p>Drop the folder here, or</p>
+            <label class="btn">Choose folder<input type="file" webkitdirectory multiple hidden></label>
+            <label class="btn">Choose files<input type="file" multiple accept=".sql,.err,.idf,.expidf" hidden></label>
+          </div>
+          <p class="pr-note" data-note="proposed" role="status" hidden></p>
+          <ul class="pr-runs" data-list="proposed"></ul>
+        </div>
+      </li>
+      <li class="pr-step">
+        <p class="pr-n">02</p>
+        <div class="pr-body">
+          <h2>Baseline runs</h2>
+          <p class="pr-help">One folder per orientation (0°, 90°, 180°, 270°). Drop them together, or choose the parent folder that holds them. Rotations are read from the results.</p>
+          <div class="pr-zone" data-zone="baselines">
+            <p>Drop the folders here, or</p>
+            <label class="btn">Choose folder<input type="file" webkitdirectory multiple hidden></label>
+            <label class="btn">Choose files<input type="file" multiple accept=".sql,.err,.idf,.expidf" hidden></label>
+          </div>
+          <p class="pr-note" data-note="baselines" role="status" hidden></p>
+          <ul class="pr-runs" data-list="baselines"></ul>
+        </div>
+      </li>
+      <li class="pr-step">
+        <p class="pr-n">03</p>
+        <div class="pr-body">
+          <h2>Project facts</h2>
+          <p class="pr-help">What the models alone can't tell. Leave a field empty if you're not sure: the checks that need it are marked for review instead of failing.</p>
+          <form id="pr-form" class="pr-form" onsubmit="return false">
+            <label class="pr-field pr-field--wide"><span>Project name <em>(only shown in your report)</em></span><input name="name" type="text" autocomplete="off" placeholder="Untitled project"></label>
+            <fieldset class="pr-field pr-field--wide"><legend>Standard</legend><label class="pr-opt"><input type="radio" name="edition" value="2010" checked><span>90.1-2010 (LEED v4)</span></label><label class="pr-opt"><input type="radio" name="edition" value="2016"><span>90.1-2016 (LEED v4.1)</span></label></fieldset>
+            <label class="pr-field"><span>Building type</span><select name="building_type"><option value="">Not sure</option><option value="nonresidential">Nonresidential</option><option value="residential">Residential</option><option value="retail">Retail</option><option value="public_assembly">Public assembly</option><option value="hospital">Hospital</option><option value="heated_only_storage">Heated-only storage</option></select></label>
+            <label class="pr-field"><span>Floors above grade</span><input name="floors" type="number" min="1" max="200" inputmode="numeric" placeholder="e.g. 12"></label>
+            <label class="pr-field" data-ed="2010"><span>Proposed heating source</span><select name="heating_source"><option value="">Not sure</option><option value="fossil">Fossil fuel, hybrid or purchased heat</option><option value="electric">Electric</option></select></label>
+            <label class="pr-field" data-ed="2016" hidden><span>Climate zone (ASHRAE 169)</span><input name="climate_zone" type="text" maxlength="3" placeholder="e.g. 1A, 2A, 4C" autocomplete="off"></label>
+            <label class="pr-check pr-field--wide"><input type="checkbox" name="rotation_exception"><span>Orientation is fixed by the site and the rating authority has accepted one baseline instead of four</span></label>
+          </form>
+        </div>
+      </li>
+    </ol>
+
+    <div class="pr-go">
+      <button class="btn btn-primary" id="pr-go" type="button" disabled>Check the runs</button>
+      <p class="pr-hint" id="pr-hint"></p>
+      <p class="pr-status" id="pr-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <section class="pr-result" id="pr-result" hidden aria-labelledby="pr-result-title">
+      <div class="pr-result-head">
+        <h2 id="pr-result-title">Report</h2>
+        <dl class="pr-counts" id="pr-counts"></dl>
+        <p class="pr-meta" id="pr-meta"></p>
+        <div class="pr-actions">
+          <button class="btn" id="pr-dl-html" type="button">Download report <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.5v8M4.5 7L8 10.5 11.5 7M3 13.5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="btn" id="pr-dl-json" type="button">Download JSON <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2.5v8M4.5 7L8 10.5 11.5 7M3 13.5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+      <iframe class="pr-frame" id="pr-frame" title="prereview report" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+      <div class="pr-feedback">
+        <h3>Wrong, missing or unclear?</h3>
+        <p>Tell me which rule got it wrong, or what a reviewer flagged that this missed. Both links open a prefilled note with only the rule ids and counts, no file contents or project name, and you can edit it before sending.</p>
+        <div class="pr-actions">
+          <a class="btn btn-primary" id="pr-fb-gh" href="https://github.com/Ray-Shi-Dev/eplus-prereview/issues/new" rel="noopener" target="_blank">Open a GitHub issue <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <a class="btn" id="pr-fb-mail" href="mailto:ray.ecodesigner@gmail.com">Email Ray</a>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <div class="container p-body pr-about">
+    <aside class="p-high"><h2>Links</h2><ul>
+      <li><a href="/tools/eplus-prereview/sample-report.html">Sample report</a> from a test building with planted mistakes</li>
+      <li><a href="https://github.com/Ray-Shi-Dev/eplus-prereview">Source code and command-line version</a></li>
+      <li><a href="https://github.com/Ray-Shi-Dev/eplus-prereview/blob/main/docs/RULES.md">Every rule and its reference</a></li>
+    </ul></aside>
+    <div class="prose">
+      <h3>What it checks</h3>
+      <ul class="pr-checks"><li><h3>Unmet load hours</h3><p>Proposed and every baseline against the 300-hour limit, counted from the timestep data, with the zones and hours that drive it.</p></li><li><h3>Simulation health</h3><p>Severe errors, warnings that change results, and a plain-language fix for each common .err message.</p></li><li><h3>Baseline and proposed match</h3><p>Schedules, internal loads, outdoor air, infiltration, areas, design days and weather file that must be the same in both.</p></li><li><h3>Baseline rules</h3><p>System type, fan power, efficiencies, envelope, window-to-wall ratio and the four rotations, for 90.1-2010 and 2016.</p></li></ul>
+      <h3>What it doesn't do</h3>
+      <p>It reads results you have already simulated; it does not run EnergyPlus (the command-line version can). It covers the checks that can be made from the outputs and the IDF, not drawings or the energy cost budget, and it can be wrong: treat a FAIL as a strong hint and a REVIEW as something to look at, and keep your own judgement.</p>
+      <h3>Where the rules come from</h3>
+      <p>ASHRAE 90.1-2010 and 2016 Appendix G as used by LEED v4 and v4.1, and the review comments energy modellers keep receiving. Each rule was tested by planting the mistake in a model and confirming it is caught, with no false alarms on the clean models; the scorecards are in the repository.</p>
+      <p class="pr-small">prereview <span id="pr-version"></span>. Python runs in the browser through <a href="https://pyodide.org">Pyodide</a> (MPL-2.0), served from this site.</p>
+    </div>
+  </div>
+</article>
+</main>
+<footer class="foot">
+  <div class="container foot-inner">
+    <span>© 2026 Ray Shi, Tainan</span>
+    <nav aria-label="Footer"><a href="/#work">Work</a><a href="/cv/">CV</a><a href="https://github.com/Ray-Shi-Dev">GitHub</a><a href="https://www.linkedin.com/in/ray-shi-b633302a8">LinkedIn</a><a href="mailto:ray.ecodesigner@gmail.com">Email</a></nav>
+  </div>
+</footer>
+<script src="/assets/site.js?v=22" defer></script>
+<script src="/tools/eplus-prereview/app.js?v=74c5e75a8f" defer></script>
+</body></html>
